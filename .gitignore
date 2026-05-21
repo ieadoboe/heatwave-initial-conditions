@@ -1,1 +1,38 @@
+# macOS
 .DS_Store
+**/.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# Personal / local-only
+TODO.md
+
+# Generated forecast outputs (large .nc, plots) — regenerate from scripts/
+outputs/
+
+# Log files
+logs/
+
+# SLURM job logs (regenerated per run); keep hand-curated *.log smoke records
+logs/*.out
+logs/*.err
+
+# NeuralGCM checkpoints — re-downloadable from GCS
+*.pkl
