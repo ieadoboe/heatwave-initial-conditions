@@ -23,6 +23,7 @@ env/
 
 # Personal / local-only
 TODO.md
+CLAUDE.md
 
 # Generated forecast outputs (large .nc, plots) — regenerate from scripts/
 outputs/
@@ -36,3 +37,6 @@ logs/*.err
 
 # NeuralGCM checkpoints — re-downloadable from GCS
 *.pkl
+
+# CDS keys
+.cdsapirc
