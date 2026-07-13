@@ -1,0 +1,57 @@
+# St. John's, NL — initial-condition optimization config for stjohns_optimize.py
+# Adapted from Tim Whittaker's config_example.yaml. Everything Tim hardcoded
+# (T_ref, the per-variable regularization weights, the target-averaging window,
+# the save interval) is now exposed here. UNTESTED locally — run on Colab
+# (needs GPU + GCS access).
+
+# NeuralGCM checkpoint. Default = the stochastic-precip model the released code
+# actually loads (the decoder surgery in load_model() is tuned for it). For a
+# deterministic storyline use 'v1/deterministic_2_8_deg.pkl', but the decoder
+# config block in load_model() likely needs adjusting first (untested).
+model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
+
+optimizer:
+  name: "adam"
+  learning_rate: 1.0e-9     # alpha. Reduce if results go unphysical/unstable.
+  iteration_number: 75      # N optimization steps (paper EXP75 = 75).
+
+loss:
+  beta: 10                  # strength of the target (heat) term.
+  lambda: 20                # overall weight on the IC-perturbation penalty.
+  T_ref: 293.15             # reference temperature (K) — St. John's
+                            # characteristic summer value (~20 C). NOTE:
+                            # degenerate with beta (only beta*T_ref matters).
+                            # Set this by principle, then tune beta — not both.
+  target_window_days: 5     # average target-box T over the LAST this-many days.
+  # Per-variable regularization weights (were hardcoded ×100 / ×10 multipliers
+  # in Tim's code). Increase a weight to keep that field closer to its initial
+  # (more realistic) value.
+  lambda_weights:
+    log_surface_pressure: 1
+    divergence: 100
+    vorticity: 100
+    temperature_variation: 100
+    specific_humidity: 10
+    specific_cloud_ice_water_content: 1
+    specific_cloud_liquid_water_content: 1
+
+evol_days: 11               # total forecast length integrated each iteration.
+
+# Target location: St. John's Intl A, NL. Longitude is degrees WEST (positive);
+# the script converts to 0-360 via (360 - lon) % 360, matching Tim's convention.
+target_lat: 47.5615
+target_lon: 52.7126
+
+init:
+  # ERA5 initial-condition zarr the run regrids onto the model grid. Build once:
+  #   python scripts/stjohns_optimize.py --config scripts/stjohns_config.yaml --build-ic
+  init_cond: "data/era5_ic_stjohns_2025-08-04.zarr"
+  # Source + date used only when building the IC:
+  era5_arco: "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"
+  init_date: "2025-08-04"   # init ~11 d before the event end; +evol_days reaches
+                            # 2025-08-15, so the last 5 d cover the Aug 9-15 event.
+
+save_every_iters: 25        # save intermediate trajectories every N iterations.
+rng_seed: 42
+output_dir: "data/stjohns_opt"
+plots_dir: "plots"
