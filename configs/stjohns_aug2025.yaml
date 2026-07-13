@@ -1,0 +1,52 @@
+# St. John's, NL — Aug 2025 heat wave (Direction A maritime-coastal exemplar).
+# Hyperparameters = the TUNED values from notebooks/heatwave_stjohns_hyperparam_tuning
+# (Notion "Hyperparameter tuning", finalized 2026-07-13):
+#   beta=10, lambda=100, alpha=5e-9, w(specific_humidity)=50, lead 5-7 days.
+
+model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
+
+event:
+  name: stjohns_aug2025
+  # St. John's Intl A. Longitude is SIGNED degrees East (negative = West).
+  target_lat: 47.5615
+  target_lon: -52.7126
+  start: 2025-08-09        # observed hot stretch (station peak Aug 12, 30.9 C)
+  peak: 2025-08-12
+  end: 2025-08-15          # sharp drop to 13.0 C on Aug 16
+
+run:
+  lead_days: 6             # tuned: 5-7 d lead is ideal -> init = peak - 6 d
+                           # = 2025-08-06; evolve to event end = 9 days.
+  # init_date: 2025-08-06  # optional explicit override of lead_days
+  # evol_days: 9           # optional; default = init -> event end
+  rng_seed: 42
+  save_every_iters: 25     # 0 = skip intermediate trajectory saves
+
+optimizer:
+  name: adam
+  learning_rate: 5.0e-9    # tuned (sweep 3): stable and faster than 1e-9.
+  iteration_number: 75     # N optimization steps (paper EXP75).
+
+loss:
+  beta: 10                 # tuned (sweeps 1-2): strength of the heat term.
+  lambda: 100              # tuned (sweeps 1-2): weight on the IC-perturbation
+                           # penalty. (The notebook's stale BEST cell says 20 —
+                           # 100 is the final choice.)
+  T_ref: 293.15            # St. John's characteristic summer T (K). DEGENERATE
+                           # with beta (only beta*T_ref matters): set by
+                           # principle, tune beta.
+  target_window_days: 5    # average target-box T over the LAST this-many days.
+  lambda_weights:          # per-variable regularization weights w_i.
+    log_surface_pressure: 1
+    divergence: 100
+    vorticity: 100
+    temperature_variation: 100
+    specific_humidity: 50  # tuned (sweep 4; grid was 1/10/50).
+    specific_cloud_ice_water_content: 1
+    specific_cloud_liquid_water_content: 1
+
+paths:
+  era5_arco: "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"
+  # ic_zarr: data/era5_ic_stjohns_aug2025_2025-08-06.zarr   (default, derived)
+  output_dir: "data/opt_runs"
+  plots_dir: "plots"

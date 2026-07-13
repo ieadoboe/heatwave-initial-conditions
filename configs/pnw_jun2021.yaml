@@ -1,0 +1,51 @@
+# PNW June 2021 heat wave (Lytton, BC) — Whittaker & Di Luca (2026) REPRODUCTION.
+# Purpose: validate our pipeline against the paper's +3.7 C storyline before
+# running new zones (Direction A step 1).
+#
+# Hyperparameters follow Tim's config_example.yaml + his hardcoded values
+# (T_ref=298.15, weights x100/x10) — NOT our St. John's tuned values, since the
+# point is to match the paper. VERIFY init_date / iteration_number against
+# W&DL Table 1 (and tim_code/) before trusting a run.
+
+model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
+
+event:
+  name: pnw_jun2021
+  # Lytton, BC (Tim's lytton_lat/lon). Longitude SIGNED degrees East.
+  target_lat: 50.231111
+  target_lon: -121.581389
+  start: 2021-06-25
+  peak: 2021-06-29         # Lytton all-time Canadian record, 49.6 C
+  end: 2021-07-01
+
+run:
+  init_date: 2021-06-20    # TODO verify vs W&DL — chosen so init + 11 d
+                           # (Tim's evol_days) ends at event end, with the
+                           # last-5-day target window covering Jun 26 - Jul 1.
+  evol_days: 11            # Tim's config_example.yaml
+  rng_seed: 42
+  save_every_iters: 25
+
+optimizer:
+  name: adam
+  learning_rate: 1.0e-9    # Tim's value.
+  iteration_number: 75     # paper EXP75 (Tim's example file says 50).
+
+loss:
+  beta: 10                 # Tim's value.
+  lambda: 20               # Tim's value.
+  T_ref: 298.15            # Tim's hardcoded value.
+  target_window_days: 5    # Tim's hardcoded -5*24.
+  lambda_weights:          # Tim's hardcoded x100/x10 multipliers.
+    log_surface_pressure: 1
+    divergence: 100
+    vorticity: 100
+    temperature_variation: 100
+    specific_humidity: 10
+    specific_cloud_ice_water_content: 1
+    specific_cloud_liquid_water_content: 1
+
+paths:
+  era5_arco: "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"
+  output_dir: "data/opt_runs"
+  plots_dir: "plots"
