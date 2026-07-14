@@ -64,7 +64,15 @@ def build_ic_zarr(model, cfg: dict, window_days: int = 2, overwrite: bool = Fals
     )
     out.parent.mkdir(parents=True, exist_ok=True)
     print(f"Materialising {window.sizes['time']} snapshots -> {out} ...")
-    window.compute().to_zarr(str(out), mode="w")
+    data = window.compute()
+    # Drop the encoding inherited from the ARCO store (zarr-v2 numcodecs
+    # Blosc), which zarr-python 3 cannot write out in its default v3 format.
+    if hasattr(data, "drop_encoding"):
+        data = data.drop_encoding()
+    else:  # older xarray
+        for v in data.variables.values():
+            v.encoding = {}
+    data.to_zarr(str(out), mode="w")
     print("IC built.")
     return out
 
