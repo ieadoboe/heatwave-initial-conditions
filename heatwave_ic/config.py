@@ -25,7 +25,16 @@ _DAY = np.timedelta64(1, "D")
 
 
 def load_config(path: str | Path) -> dict:
-    """Read an event YAML and resolve derived fields. Returns a nested dict."""
+    """Read an event YAML and resolve derived fields. Returns a nested dict.
+
+    A relative path that doesn't exist from the cwd is retried relative to
+    the repo root (the package's parent), so notebooks work regardless of
+    where the kernel's working directory ended up."""
+    path = Path(path)
+    if not path.is_absolute() and not path.exists():
+        alt = Path(__file__).resolve().parents[1] / path
+        if alt.exists():
+            path = alt
     with open(path, "r") as f:
         raw = yaml.safe_load(f)
     return resolve_config(raw)
