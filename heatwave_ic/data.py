@@ -1,6 +1,8 @@
 """ARCO-ERA5 access, IC building and regridding onto the model grid."""
 
 import gc
+import os
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -43,14 +45,28 @@ def shift_forcings(ds: xr.Dataset, model) -> xr.Dataset:
     )
 
 
+def _ic_is_valid(path: Path, model) -> bool:
+    """A usable IC store: opens, has the grid dims, and every model variable."""
+    try:
+        ds = xr.open_zarr(str(path), chunks=None)
+    except Exception:
+        return False
+    needed = set(model.input_variables + model.forcing_variables)
+    return ({"latitude", "longitude", "time"} <= set(ds.sizes)
+            and needed <= set(ds.data_vars))
+
+
 def build_ic_zarr(model, cfg: dict, window_days: int = 2, overwrite: bool = False) -> Path:
     """Slice the model's input+forcing variables at the config's init_date from
     ARCO-ERA5 and write the IC zarr that `load_ic_on_model_grid` regrids.
-    No-op if the zarr already exists (unless overwrite=True)."""
+    No-op if a VALID zarr already exists (unless overwrite=True); a partial
+    store left by an interrupted write is rebuilt automatically."""
     out = Path(cfg["paths"]["ic_zarr"])
     if out.exists() and not overwrite:
-        print(f"IC already built: {out}")
-        return out
+        if _ic_is_valid(out, model):
+            print(f"IC already built: {out}")
+            return out
+        print(f"Existing IC store is incomplete/corrupt — rebuilding: {out}")
     t0 = np.datetime64(cfg["run"]["init_date"])
     print(f"Opening ARCO-ERA5 and slicing the IC window at {t0} ...")
     full = open_arco_era5(cfg["paths"]["era5_arco"])
@@ -72,7 +88,13 @@ def build_ic_zarr(model, cfg: dict, window_days: int = 2, overwrite: bool = Fals
     else:  # older xarray
         for v in data.variables.values():
             v.encoding = {}
-    data.to_zarr(str(out), mode="w")
+    # Write to a temp path first so an interrupted write never leaves a
+    # partial store at the final location.
+    tmp = out.with_name(out.name + ".building")
+    shutil.rmtree(tmp, ignore_errors=True)
+    data.to_zarr(str(tmp), mode="w")
+    shutil.rmtree(out, ignore_errors=True)
+    os.replace(tmp, out)
     print("IC built.")
     return out
 
@@ -81,6 +103,11 @@ def load_ic_on_model_grid(model, ic_zarr: str | Path) -> xr.Dataset:
     """Open a previously-built IC zarr and conservatively regrid it onto the
     model grid (NaNs filled with nearest)."""
     sliced = xr.open_zarr(str(ic_zarr), chunks=None)
+    if not {"latitude", "longitude", "time"} <= set(sliced.sizes):
+        raise ValueError(
+            f"{ic_zarr} is not a valid IC store (dims: {dict(sliced.sizes)}). "
+            "It is likely a partial write — delete it and re-run build_ic_zarr."
+        )
     regridder = make_regridder(sliced, model)
     return xarray_utils.fill_nan_with_nearest(xarray_utils.regrid(sliced, regridder))
 
