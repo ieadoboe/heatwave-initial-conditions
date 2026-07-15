@@ -46,14 +46,24 @@ def shift_forcings(ds: xr.Dataset, model) -> xr.Dataset:
 
 
 def _ic_is_valid(path: Path, model) -> bool:
-    """A usable IC store: opens, has the grid dims, and every model variable."""
+    """A usable IC store: opens, has non-empty grid dims, every model variable,
+    and the first snapshot actually reads back with finite values."""
     try:
         ds = xr.open_zarr(str(path), chunks=None)
+        needed = set(model.input_variables + model.forcing_variables)
+        if not ({"latitude", "longitude", "time"} <= set(ds.sizes)
+                and needed <= set(ds.data_vars)):
+            return False
+        if any(ds.sizes[d] == 0 for d in ("latitude", "longitude", "time")):
+            return False
+        # Probe one 2D field: catches missing/NaN-filled chunks from an
+        # interrupted write that metadata alone would not reveal.
+        probe = ds[model.input_variables[0]].isel(time=0)
+        if "level" in probe.dims:
+            probe = probe.isel(level=0)
+        return bool(np.isfinite(probe.values).any())
     except Exception:
         return False
-    needed = set(model.input_variables + model.forcing_variables)
-    return ({"latitude", "longitude", "time"} <= set(ds.sizes)
-            and needed <= set(ds.data_vars))
 
 
 def build_ic_zarr(model, cfg: dict, window_days: int = 2, overwrite: bool = False) -> Path:
@@ -99,17 +109,35 @@ def build_ic_zarr(model, cfg: dict, window_days: int = 2, overwrite: bool = Fals
     return out
 
 
-def load_ic_on_model_grid(model, ic_zarr: str | Path) -> xr.Dataset:
+def load_ic_on_model_grid(model, ic_zarr: str | Path, n_times: int | None = 2) -> xr.Dataset:
     """Open a previously-built IC zarr and conservatively regrid it onto the
-    model grid (NaNs filled with nearest)."""
+    model grid (NaNs filled with nearest).
+
+    n_times: how many snapshots to load from the start of the stored window
+    (default 2 — the optimizer only uses the first one; pass None for all).
+    The data is loaded into memory BEFORE regridding: dinosaur's regrid
+    materialises everything anyway, and loading forward-order first avoids a
+    lazy reversed-latitude zarr read that is broken on some xarray/zarr
+    versions (and caps memory at n_times snapshots instead of the full window)."""
     sliced = xr.open_zarr(str(ic_zarr), chunks=None)
-    if not {"latitude", "longitude", "time"} <= set(sliced.sizes):
+    if (not {"latitude", "longitude", "time"} <= set(sliced.sizes)
+            or any(sliced.sizes[d] == 0 for d in ("latitude", "longitude", "time"))):
         raise ValueError(
             f"{ic_zarr} is not a valid IC store (dims: {dict(sliced.sizes)}). "
             "It is likely a partial write — delete it and re-run build_ic_zarr."
         )
-    regridder = make_regridder(sliced, model)
-    return xarray_utils.fill_nan_with_nearest(xarray_utils.regrid(sliced, regridder))
+    if n_times is not None:
+        sliced = sliced.isel(time=slice(0, n_times))
+    sliced = sliced.load()
+    regridded = xarray_utils.fill_nan_with_nearest(
+        xarray_utils.regrid(sliced, make_regridder(sliced, model))
+    )
+    if not np.isfinite(regridded[model.input_variables[0]].isel(time=0)).any():
+        raise ValueError(
+            f"{ic_zarr} read back all-NaN — the store's chunk data is damaged. "
+            "Rebuild with build_ic_zarr(model, cfg, overwrite=True)."
+        )
+    return regridded
 
 
 def regrid_window(
