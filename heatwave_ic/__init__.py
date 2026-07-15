@@ -51,4 +51,11 @@ from heatwave_ic.outputs import (
     save_state_fields,
     save_trajectory_nc,
 )
+from heatwave_ic.zones import (
+    GROUP_NAMES,
+    classify_event,
+    koppen_class,
+    koppen_class_modal,
+    koppen_group,
+)
 from heatwave_ic import plots

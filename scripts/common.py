@@ -7,6 +7,8 @@ Usage:
     mpl_apply()
 """
 
+import shutil
+
 import matplotlib as mpl
 
 MPL_CONFIG = {
@@ -42,5 +44,11 @@ def mpl_apply(config: dict | None = None) -> None:
     config : dict, optional
         Dictionary of rcParams to apply. Defaults to MPL_CONFIG.
     """
-    cfg = config if config is not None else MPL_CONFIG
+    cfg = dict(config if config is not None else MPL_CONFIG)
+    if cfg.get("text.usetex") and shutil.which("latex") is None:
+        # No TeX toolchain on this machine (e.g. Colab): render with mathtext
+        # instead so $...$ labels still work without a latex binary.
+        cfg["text.usetex"] = False
+        cfg["mathtext.fontset"] = "cm"
+        cfg["font.serif"] = ["DejaVu Serif"]
     mpl.rcParams.update(cfg)
