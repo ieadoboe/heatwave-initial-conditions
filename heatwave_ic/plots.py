@@ -72,6 +72,47 @@ def plot_leadtime_spaghetti(traj: dict, era5_truth: pd.Series,
     return _finish(fig, save), ax
 
 
+def plot_koppen_map(events: dict | None = None, extent=None, save=None,
+                    title="Koppen-Geiger climate classes, 1991-2020 (Beck et al. 2023)"):
+    """Global (or zoomed) map of the 30 Koppen-Geiger sub-zones in the official
+    Beck et al. colors, with optional event markers.
+
+    events: {label: (lat, lon)} — white-filled ringed markers with labels
+            (lon in signed degrees East).
+    extent: (lon_min, lon_max, lat_min, lat_max) to zoom a region.
+    """
+    from matplotlib.colors import BoundaryNorm, ListedColormap
+    from matplotlib.patches import Patch
+
+    from heatwave_ic.zones import KOPPEN_COLORS, koppen_grid
+
+    classes, _, _, codes = koppen_grid()
+    cmap = ListedColormap(["#ffffff"] + [KOPPEN_COLORS[c] for c in codes[1:]])
+    norm = BoundaryNorm(np.arange(-0.5, 31.5), cmap.N)
+
+    fig, ax = plt.subplots(figsize=(13, 7.5))
+    ax.imshow(classes, cmap=cmap, norm=norm, interpolation="nearest",
+              extent=[-180, 180, -90, 90], origin="upper")
+    if events:
+        for name, (la, lo) in events.items():
+            lo = ((lo + 180.0) % 360.0) - 180.0
+            ax.scatter([lo], [la], s=55, facecolor="white", edgecolor="black",
+                       linewidth=1.2, zorder=5)
+            ax.annotate(name, (lo, la), xytext=(6, 6),
+                        textcoords="offset points", fontsize=8, color="black",
+                        bbox=dict(facecolor="white", alpha=0.75,
+                                  edgecolor="none", pad=1.5))
+    if extent:
+        ax.set_xlim(extent[0], extent[1])
+        ax.set_ylim(extent[2], extent[3])
+    ax.set(xlabel="longitude", ylabel="latitude", title=title)
+    handles = [Patch(facecolor=KOPPEN_COLORS[c], label=c) for c in codes[1:]]
+    ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.10),
+              ncol=10, fontsize=7, frameon=False, handlelength=1.2,
+              columnspacing=1.0)
+    return _finish(fig, save), ax
+
+
 def plot_skill_vs_lead(skill: pd.DataFrame, save=None):
     """Peak error and event-window RMSE vs lead time (short lead on the right)."""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.5))
