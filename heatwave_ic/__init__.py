@@ -59,4 +59,5 @@ from heatwave_ic.zones import (
     koppen_group,
 )
 from heatwave_ic.pipeline import run_event
+from heatwave_ic.ensemble import ensemble_metrics, run_ensemble, run_event_ensemble
 from heatwave_ic import plots

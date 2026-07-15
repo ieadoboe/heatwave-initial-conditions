@@ -72,6 +72,29 @@ def plot_leadtime_spaghetti(traj: dict, era5_truth: pd.Series,
     return _finish(fig, save), ax
 
 
+def plot_ensemble_storyline(ens: pd.DataFrame, traj_original: pd.Series,
+                            traj_optimized: pd.Series, event_start, event_end,
+                            title: str = "Storyline vs ensemble", save=None):
+    """Optimized-IC storyline against the stochastic-ensemble envelope:
+    thin gray members, black control, red optimized trajectory."""
+    fig, ax = plt.subplots(figsize=(11, 4.5))
+    t = pd.to_datetime(ens.index)
+    for col in ens.columns:
+        ax.plot(t, ens[col].values, color="0.75", lw=0.5, alpha=0.5, zorder=1)
+    ax.plot([], [], color="0.75", lw=1.2,
+            label=f"stochastic ensemble ({ens.shape[1]} members)")
+    ax.plot(pd.to_datetime(traj_original.index), traj_original.values,
+            "k", lw=2, label="unperturbed (control seed)", zorder=3)
+    ax.plot(pd.to_datetime(traj_optimized.index), traj_optimized.values,
+            "C3", lw=2, label="optimized IC", zorder=4)
+    ax.axvspan(pd.Timestamp(event_start), pd.Timestamp(event_end),
+               color="red", alpha=0.08, label="event window", zorder=0)
+    ax.set(xlabel="date", ylabel=r"box-mean T$_{1000}$ ($^\circ$C)", title=title)
+    ax.legend()
+    ax.grid(alpha=0.3)
+    return _finish(fig, save), ax
+
+
 def plot_koppen_map(events: dict | None = None, extent=None, save=None,
                     title="Koppen-Geiger climate classes, 1991-2020 (Beck et al. 2023)"):
     """Global (or zoomed) map of the 30 Koppen-Geiger sub-zones in the official
