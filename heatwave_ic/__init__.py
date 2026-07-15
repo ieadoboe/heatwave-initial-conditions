@@ -58,4 +58,5 @@ from heatwave_ic.zones import (
     koppen_class_modal,
     koppen_group,
 )
+from heatwave_ic.pipeline import run_event
 from heatwave_ic import plots
