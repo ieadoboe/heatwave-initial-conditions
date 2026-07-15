@@ -7,6 +7,7 @@ model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
 
 event:
   name: stjohns_aug2025
+  zone: maritime coastal
   # St. John's Intl A. Longitude is SIGNED degrees East (negative = West).
   target_lat: 47.5615
   target_lon: -52.7126

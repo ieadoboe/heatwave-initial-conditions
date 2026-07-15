@@ -1,0 +1,50 @@
+# Rio de Janeiro / Brazil Nov 2023 — Direction A TROPICAL exemplar.
+# Köppen: Aw point / Aw model cell. Compact spring event (Rio 42.5 C Nov 12;
+# Araçuaí 44.8 C Nov 19); has a dedicated WCD paper (6:1857, 2025) — the same
+# journal as Whittaker & Di Luca — plus a WWA attribution.
+# NOTE: coastal target — the 4x4 loss box includes South Atlantic cells,
+# damping the box-mean signal (same situation as St. John's; a known
+# characteristic, not a blocker). Anomaly-based scoring matters most here:
+# tropical absolute swings are small.
+# Hyperparameters = St. John's tuned values (common pipeline settings);
+# beta may need raising in the tropics if the heat term is too weak.
+
+model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
+
+event:
+  name: brazil_nov2023
+  zone: tropical
+  target_lat: -22.91
+  target_lon: -43.17
+  start: 2023-11-12
+  peak: 2023-11-14
+  end: 2023-11-19
+
+run:
+  lead_days: 6                # init 2023-11-08; evolve 11 d to event end.
+  rng_seed: 42
+  save_every_iters: 25
+
+optimizer:
+  name: adam
+  learning_rate: 5.0e-9
+  iteration_number: 75
+
+loss:
+  beta: 10
+  lambda: 100
+  T_ref: 298.15               # ~25 C — Rio late-spring characteristic T.
+  target_window_days: 5
+  lambda_weights:
+    log_surface_pressure: 1
+    divergence: 100
+    vorticity: 100
+    temperature_variation: 100
+    specific_humidity: 50
+    specific_cloud_ice_water_content: 1
+    specific_cloud_liquid_water_content: 1
+
+paths:
+  era5_arco: "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"
+  output_dir: "data/opt_runs"
+  plots_dir: "plots"

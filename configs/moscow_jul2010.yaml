@@ -1,0 +1,49 @@
+# Moscow / Russia Jul-Aug 2010 — Direction A CONTINENTAL INTERIOR exemplar.
+# Köppen: Dfb point / Dfb model cell — same class as St. John's cell, so the
+# maritime-vs-continental contrast is tested with Köppen held constant.
+# The full event ran ~Jul 1 - Aug 15 (blocking + soil-moisture feedback,
+# Barriopedro 2011); the window below is the PEAK PHASE around the Moscow
+# station record (38.2 C on Jul 29).
+# Hyperparameters = St. John's tuned values (common pipeline settings);
+# they were tuned on a maritime event and may need per-event adjustment.
+
+model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
+
+event:
+  name: moscow_jul2010
+  zone: continental interior
+  target_lat: 55.75
+  target_lon: 37.62           # signed degrees East
+  start: 2010-07-26
+  peak: 2010-07-29
+  end: 2010-08-01
+
+run:
+  lead_days: 6                # init 2010-07-23; evolve 9 d to event end.
+  rng_seed: 42
+  save_every_iters: 25
+
+optimizer:
+  name: adam
+  learning_rate: 5.0e-9
+  iteration_number: 75
+
+loss:
+  beta: 10
+  lambda: 100
+  T_ref: 293.15               # ~20 C — Moscow high-summer characteristic T.
+                              # Degenerate with beta; set by principle.
+  target_window_days: 5
+  lambda_weights:
+    log_surface_pressure: 1
+    divergence: 100
+    vorticity: 100
+    temperature_variation: 100
+    specific_humidity: 50
+    specific_cloud_ice_water_content: 1
+    specific_cloud_liquid_water_content: 1
+
+paths:
+  era5_arco: "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"
+  output_dir: "data/opt_runs"
+  plots_dir: "plots"

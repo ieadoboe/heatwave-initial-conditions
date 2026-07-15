@@ -1,0 +1,47 @@
+# Kayes, Mali / Sahel Apr 2024 — Direction A ARID exemplar.
+# Köppen: BSh point / BSh model cell. Short, sharp end-of-dry-season event
+# (48.5 C at Kayes on Apr 3; WWA: "impossible without climate change").
+# Low elevation (~50 m), so the T_1000-over-high-terrain caveat that would
+# affect a SW-US pick does not apply here.
+# Alternates in the candidates CSV: Phoenix 2023 (BWh), India-Pakistan 2022.
+# Hyperparameters = St. John's tuned values (common pipeline settings).
+
+model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
+
+event:
+  name: sahel_apr2024
+  zone: arid
+  target_lat: 14.45
+  target_lon: -11.44
+  start: 2024-03-31
+  peak: 2024-04-03
+  end: 2024-04-05
+
+run:
+  lead_days: 6                # init 2024-03-28; evolve 8 d to event end.
+  rng_seed: 42
+  save_every_iters: 25
+
+optimizer:
+  name: adam
+  learning_rate: 5.0e-9
+  iteration_number: 75
+
+loss:
+  beta: 10
+  lambda: 100
+  T_ref: 306.15               # ~33 C — Sahel late-dry-season characteristic T.
+  target_window_days: 5
+  lambda_weights:
+    log_surface_pressure: 1
+    divergence: 100
+    vorticity: 100
+    temperature_variation: 100
+    specific_humidity: 50
+    specific_cloud_ice_water_content: 1
+    specific_cloud_liquid_water_content: 1
+
+paths:
+  era5_arco: "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"
+  output_dir: "data/opt_runs"
+  plots_dir: "plots"

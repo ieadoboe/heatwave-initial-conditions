@@ -1,0 +1,46 @@
+# Kumagaya / Japan Jul 2018 — Direction A SUBTROPICAL HUMID exemplar.
+# Köppen: Cfa point / Cfa model cell. Compact, well-bounded event ending at
+# the 41.1 C national record (Kumagaya, Jul 23; Imada et al. 2019, WWA).
+# Alternate for this zone (in data/heatwave_event_candidates.csv): the
+# record-length Yangtze Jun-Aug 2022 event.
+# Hyperparameters = St. John's tuned values (common pipeline settings).
+
+model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
+
+event:
+  name: japan_jul2018
+  zone: subtropical humid
+  target_lat: 36.15
+  target_lon: 139.39
+  start: 2018-07-14
+  peak: 2018-07-23
+  end: 2018-07-24
+
+run:
+  lead_days: 6                # init 2018-07-17; evolve 7 d to event end.
+  rng_seed: 42
+  save_every_iters: 25
+
+optimizer:
+  name: adam
+  learning_rate: 5.0e-9
+  iteration_number: 75
+
+loss:
+  beta: 10
+  lambda: 100
+  T_ref: 300.15               # ~27 C — Kanto high-summer characteristic T.
+  target_window_days: 5
+  lambda_weights:
+    log_surface_pressure: 1
+    divergence: 100
+    vorticity: 100
+    temperature_variation: 100
+    specific_humidity: 50
+    specific_cloud_ice_water_content: 1
+    specific_cloud_liquid_water_content: 1
+
+paths:
+  era5_arco: "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"
+  output_dir: "data/opt_runs"
+  plots_dir: "plots"

@@ -11,6 +11,7 @@ model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
 
 event:
   name: pnw_jun2021
+  zone: maritime coastal
   # Lytton, BC (Tim's lytton_lat/lon). Longitude SIGNED degrees East.
   target_lat: 50.231111
   target_lon: -121.581389
