@@ -1,0 +1,8 @@
+event,zone,koppen_point,koppen_cell,init_date,evol_days,run_dir,status,final_loss,final_box_T_C,final_reg,storyline_gain_C
+pnw_jun2021,maritime coastal,Dsb,Dfb,2021-06-20,11.0,data/opt_runs/pnw_jun2021_lr1em09_it75_lam20_b10_d11,ok,171.3584,30.44,0.012152068316936493,2.91
+stjohns_aug2025,maritime coastal,Dfc,Dfb,2025-08-06,9.0,data/opt_runs/stjohns_aug2025_lr5em09_it75_lam100_b10_d9,ok,172.9823,21.79,0.022867754101753235,1.04
+moscow_jul2010,continental interior,Dfb,Dfb,2010-07-23,9.0,data/opt_runs/moscow_jul2010_lr5em09_it75_lam100_b10_d9,ok,173.7605,29.34,0.05208546668291092,2.34
+japan_jul2018,subtropical humid,Cfa,Cfa,2018-07-17,7.0,data/opt_runs/japan_jul2018_lr5em09_it75_lam100_b10_d7,ok,173.0905,29.11,0.0044828299432992935,3.35
+sahel_apr2024,arid,BSh,BSh,2024-03-28,8.0,data/opt_runs/sahel_apr2024_lr5em09_it75_lam100_b10_d8,ok,174.7243,35.72,0.0052442424930632114,2.78
+brazil_nov2023,tropical,Aw,Aw,2023-11-08,11.0,data/opt_runs/brazil_nov2023_lr5em09_it75_lam100_b10_d11,ok,173.7481,26.52,0.015163068659603596,1.52
+siberia_jun2020,polar/high-latitude,Dfd,Dfd,2020-06-14,11.0,data/opt_runs/siberia_jun2020_lr5em09_it75_lam100_b10_d11,ok,165.0303,29.92,0.00661200238391757,6.7
