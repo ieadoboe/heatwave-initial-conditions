@@ -8,9 +8,29 @@
 # matches the one you submitted from.
 
 # --- allocation -----------------------------------------------------------
-# The base name, not the def-arminnl_cpu / def-arminnl_gpu associations that
-# sacctmgr lists: Slurm picks the right one from what the job requests.
-export SBATCH_ACCOUNT="def-arminnl"
+# Your allocation, e.g. def-yourpi. Set SBATCH_ACCOUNT yourself to skip the
+# lookup below, or to choose when you hold more than one:
+#
+#     export SBATCH_ACCOUNT=def-yourpi
+#
+# Wanted is the BASE name, not the def-yourpi_cpu / def-yourpi_gpu associations
+# sacctmgr lists: Slurm picks the right one from what each job requests.
+if [ -z "${SBATCH_ACCOUNT:-}" ]; then
+    SBATCH_ACCOUNT=$(sacctmgr -nP show assoc user="$USER" format=account 2>/dev/null \
+        | sed -e 's/_cpu$//' -e 's/_gpu$//' | sort -u | grep . || true)
+    if [ "$(printf '%s\n' "$SBATCH_ACCOUNT" | wc -l)" -ne 1 ] || [ -z "$SBATCH_ACCOUNT" ]; then
+        echo "hpc/nibi/env.sh: could not pick an allocation automatically." >&2
+        if [ -n "$SBATCH_ACCOUNT" ]; then
+            echo "  You hold more than one:" >&2
+            printf '    %s\n' $SBATCH_ACCOUNT >&2
+        fi
+        echo "  Set it and source this file again:" >&2
+        echo "    export SBATCH_ACCOUNT=def-yourpi" >&2
+        unset SBATCH_ACCOUNT
+        return 1 2>/dev/null || exit 1
+    fi
+fi
+export SBATCH_ACCOUNT
 export SLURM_ACCOUNT="$SBATCH_ACCOUNT"        # srun
 export SALLOC_ACCOUNT="$SBATCH_ACCOUNT"       # salloc, used by calibrate.sh
 

@@ -1,8 +1,21 @@
 # Running the atlas on Nibi
 
-Nibi is the SHARCNET H100 cluster at Waterloo. Log in as `ieadoboe`; the
-examples assume a `nibi` host alias in `~/.ssh/config` with connection
-multiplexing, so one Duo approval covers a whole working session.
+Nibi is the SHARCNET H100 cluster at Waterloo. You need your own Alliance
+account and an allocation on it. The examples assume a `nibi` host alias in
+`~/.ssh/config` with connection multiplexing, so one Duo approval covers a
+whole working session:
+
+```
+Host nibi
+    HostName nibi.alliancecan.ca
+    User <your-alliance-username>
+    ControlMaster auto
+    ControlPath ~/.ssh/cm-%r@%h:%p
+    ControlPersist 4h
+```
+
+Without the alias, pass the destination to `push.sh` explicitly and set
+`REMOTE_HOST` for `pull.sh`.
 
 Nibi is chosen here because all of its nodes reach the internet, so the
 pipeline's lazy reads from Google Cloud Storage (the NeuralGCM checkpoint,
@@ -19,11 +32,18 @@ validation job rather than an array.
 
 1. Request access to Nibi in CCDB, under **Resources > Access Systems**. It can
    take an hour to take effect.
-2. `env.sh` carries the allocation, `def-arminnl`. That is the base name, not
-   the `def-arminnl_cpu` and `def-arminnl_gpu` associations `sacctmgr` lists:
-   Slurm picks the right one from what each job requests. Sourcing `env.sh`
-   creates `HEATWAVE_PERSIST` for you, because Nibi doesn't make per-user
-   directories under `/project` by default.
+2. Sourcing `env.sh` works out your allocation from `sacctmgr`. When you hold
+   more than one, it stops and asks you to pick:
+
+   ```bash
+   export SBATCH_ACCOUNT=def-yourpi
+   ```
+
+   What it wants is the BASE name, not the `def-yourpi_cpu` and
+   `def-yourpi_gpu` associations `sacctmgr` lists: Slurm picks the right one
+   from what each job requests. Sourcing `env.sh` also creates
+   `HEATWAVE_PERSIST` for you, because Nibi doesn't make per-user directories
+   under `/project` by default.
 3. Copy the repository to Nibi and build the environment on a login node:
 
    ```bash
@@ -181,9 +201,13 @@ walltime is killed outright.
 
 ## Collecting the results
 
-Run this on your laptop:
+Run this on your laptop. It cannot ask Slurm from there, so tell it which
+allocation the results sit under (`echo $HEATWAVE_PERSIST` on the cluster
+prints the full path if you would rather pass `REMOTE_DIR`):
 
 ```bash
+export REMOTE_ACCOUNT=def-yourpi      # once per shell
+
 bash hpc/nibi/pull.sh                 # summaries, storylines, arrays, figures
 bash hpc/nibi/pull.sh --with-nc       # add the trajectory netCDFs (GBs)
 bash hpc/nibi/pull.sh --with-members  # add the 525 raw member CSVs

@@ -13,9 +13,25 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REMOTE_HOST="${REMOTE_HOST:-nibi}"
-REMOTE_DIR="${REMOTE_DIR:-projects/def-arminnl/ieadoboe/heatwave_atlas}"
-# SRC can be set directly to a local path, which is how this is tested.
-SRC="${SRC:-$REMOTE_HOST:$REMOTE_DIR}"
+# Where HEATWAVE_PERSIST points on the cluster. This runs on your laptop, so
+# it cannot ask Slurm: give it your allocation, or the whole path.
+#
+#     REMOTE_ACCOUNT=def-yourpi bash hpc/nibi/pull.sh
+#     REMOTE_DIR=projects/def-yourpi/me/heatwave_atlas bash hpc/nibi/pull.sh
+# SRC can be set directly to a local path, which is how this is tested; it
+# bypasses the remote entirely, so it also bypasses the check below.
+REMOTE_ACCOUNT="${REMOTE_ACCOUNT:-}"
+REMOTE_USER="${REMOTE_USER:-$USER}"
+if [ -z "${SRC:-}" ] && [ -z "${REMOTE_DIR:-}" ]; then
+    if [ -z "$REMOTE_ACCOUNT" ]; then
+        echo "hpc/nibi/pull.sh: set REMOTE_ACCOUNT to your allocation" >&2
+        echo "  (e.g. def-yourpi), or REMOTE_DIR to the full remote path." >&2
+        echo "  On the cluster, 'echo \$HEATWAVE_PERSIST' prints it." >&2
+        exit 2
+    fi
+    REMOTE_DIR="projects/$REMOTE_ACCOUNT/$REMOTE_USER/heatwave_atlas"
+fi
+SRC="${SRC:-$REMOTE_HOST:${REMOTE_DIR:-}}"
 
 WITH_NC=0
 WITH_MEMBERS=0

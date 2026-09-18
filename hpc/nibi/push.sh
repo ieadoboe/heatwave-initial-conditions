@@ -2,7 +2,10 @@
 # Sync the repository to Nibi. Run this on your LAPTOP, not on the cluster.
 #
 #     bash hpc/nibi/push.sh
-#     bash hpc/nibi/push.sh ieadoboe@nibi.alliancecan.ca:heatwave-initial-conditions/
+#     bash hpc/nibi/push.sh <user>@nibi.alliancecan.ca:heatwave-initial-conditions/
+#
+# The no-argument form assumes a `nibi` host alias in ~/.ssh/config; pass the
+# destination explicitly if you do not have one.
 #
 # Outputs stay on the cluster, so data/ and plots/ are not pushed. The one
 # exception is the Koppen classification grid, which is a static input the
