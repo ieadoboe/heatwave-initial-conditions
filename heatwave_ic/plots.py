@@ -154,3 +154,40 @@ def plot_skill_vs_lead(skill: pd.DataFrame, save=None):
     ax2.grid(alpha=0.3)
     fig.tight_layout()
     return _finish(fig, save), (ax1, ax2)
+
+
+def plot_europe_heatwaves(hw_days, lat, lon, events=None, top_n: int = 8,
+                          year: int = 2026, save=None):
+    """Map of heat-wave days per grid cell, with the largest events marked.
+
+    hw_days: (lat, lon) count of days each cell spent in a detected event.
+    events:  the event_table DataFrame; the top_n by severity are labelled at
+             their centroids."""
+    from matplotlib.colors import BoundaryNorm
+
+    counts = np.where(hw_days > 0, hw_days, np.nan)
+    vmax = max(6, int(np.nanmax(counts)) if np.isfinite(counts).any() else 6)
+    levels = np.arange(0, vmax + 2)
+
+    fig, ax = plt.subplots(figsize=(11, 8))
+    im = ax.imshow(counts, origin="upper", cmap="inferno_r",
+                   norm=BoundaryNorm(levels, 256),
+                   extent=[lon.min(), lon.max(), lat.min(), lat.max()],
+                   interpolation="nearest", aspect="auto")
+    fig.colorbar(im, ax=ax, label="heat-wave days", shrink=0.85, pad=0.02)
+
+    if events is not None and len(events):
+        for _, e in events.head(top_n).iterrows():
+            ax.scatter([e.centroid_lon], [e.centroid_lat], s=48,
+                       facecolor="white", edgecolor="black", linewidth=1.1,
+                       zorder=5)
+            ax.annotate(f"{int(e['rank'])}. {e['peak']}",
+                        (e.centroid_lon, e.centroid_lat), xytext=(6, 5),
+                        textcoords="offset points", fontsize=7.5,
+                        bbox=dict(facecolor="white", alpha=0.8,
+                                  edgecolor="none", pad=1.4), zorder=6)
+    ax.set(xlabel="longitude", ylabel="latitude",
+           title=f"European heat waves {year}: days above the calendar-day "
+                 f"90th percentile\n(CTX90pct, 1991-2020 baseline; "
+                 f"numbers mark the {top_n} most severe events)")
+    return _finish(fig, save), ax
