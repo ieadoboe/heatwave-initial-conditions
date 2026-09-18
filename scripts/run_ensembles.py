@@ -17,7 +17,8 @@ Writes data/ensemble_summary.csv and MERGES the ensemble metrics into
 data/atlas_summary.csv (columns: n_members, ens_mean_peak_C, ens_max_peak_C,
 ens_peak_spread_C, gain_vs_ens_max_C, gain_over_spread).
 
-RUNTIME: needs a GPU and GCS access — run on Colab, not the local CPU venv.
+RUNTIME: needs a GPU and GCS access. Run it on Nibi (hpc/nibi/), not the
+local CPU venv.
 """
 
 import argparse
@@ -78,9 +79,9 @@ def main():
                              "scripts/collect_summaries.py, or they overwrite "
                              "one another's rows.")
     parser.add_argument("--persist-dir", default=None,
-                        help="Durable dir (e.g. mounted Drive folder): run "
-                             "dirs are restored from it at start and synced "
-                             "back after every event")
+                        help="Durable directory (on Nibi, $HEATWAVE_PERSIST): "
+                             "run dirs are restored from it at start and "
+                             "synced back after every event")
     args = parser.parse_args()
 
     persist = Path(args.persist_dir) if args.persist_dir else None
@@ -101,20 +102,24 @@ def main():
     for path in args.configs:
         cfg = load_config(path)
         name = cfg["event"]["name"]
+        # Members depend on the IC, so the stream is keyed by init date
+        # and seed as well as event: a config that moves init_date must
+        # not reuse members computed from the old one.
+        key = f"{name}_{cfg['run']['init_date']}_seed{cfg['run']['rng_seed']}"
         print(f"\n{'=' * 70}\n{describe(cfg)}\n{'=' * 70}")
         model_name = cfg["model_name"]
         if model_name not in models:
             print(f"Loading model {model_name} ...")
             models[model_name] = load_model(model_name)
         try:
-            if args.rerun and (members_root / name).exists():
-                print(f"--rerun: clearing streamed members {members_root / name}")
-                shutil.rmtree(members_root / name)
+            if args.rerun and (members_root / key).exists():
+                print(f"--rerun: clearing streamed members {members_root / key}")
+                shutil.rmtree(members_root / key)
             summary = run_event_ensemble(cfg, models[model_name],
                                          n_members=args.members,
                                          skip_existing=not args.rerun,
                                          progress=not args.quiet,
-                                         members_dir=members_root / name)
+                                         members_dir=members_root / key)
         except Exception as exc:
             traceback.print_exc()
             summary = {"event": name, "status": f"FAILED: {exc}"}

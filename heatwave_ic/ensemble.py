@@ -33,11 +33,12 @@ def run_ensemble(model, eval_era5, cfg: dict, n_members: int = 75,
     column per member. Member seeds are rng_seed + 0..n-1, so member_000
     reproduces the control run's seed.
 
-    members_dir: if given (e.g. a mounted Drive folder like
-    .../heatwave_atlas/ensembles/EXP75/<event>), each member is written to
-    member_NNN.csv AS IT COMPLETES and already-written members are read back
-    instead of recomputed — so a killed session resumes at the exact member
-    it died on, not from zero."""
+    members_dir: if given (a durable folder such as
+    $HEATWAVE_PERSIST/ensembles/EXP75/<event>_<init_date>_seed<seed>), each
+    member is written to member_NNN.csv AS IT COMPLETES and already-written
+    members are read back instead of recomputed, so a killed job resumes at
+    the exact member it died on, not from zero. The caller keys the folder
+    by everything a member depends on; this function only checks length."""
     event, run = cfg["event"], cfg["run"]
     lat_i, lon_i = target_indices(
         eval_era5, event["target_lat"], event["target_lon_east"])

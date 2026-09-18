@@ -7,6 +7,8 @@ from pathlib import Path
 import jax.numpy as jnp
 import numpy as np
 
+from heatwave_ic.optimize import WEIGHT_KEYS
+
 # What netCDF accepts as an attribute value. Note bool is deliberately absent:
 # xarray's validator lets it through because Python bools are ints, but the
 # netCDF4 writer then rejects the b1 dtype, so booleans are converted instead.
@@ -15,9 +17,14 @@ _NC_SEQ_TYPES = (list, tuple)
 
 
 def make_run_dir(cfg: dict, params: dict | None = None) -> str:
-    """data/opt_runs/{event}_lr..._it..._lam..._b..._d.../ — the run name
-    encodes the hyperparameters actually used (pass result['params'] when
-    they were overridden)."""
+    """data/opt_runs/{event}_i{init}_lr..._it..._lam..._b..._w..._d.../
+
+    The run name encodes everything the result depends on: the init date,
+    the optimizer and loss hyperparameters, the per-variable weights in
+    WEIGHT_KEYS order, and the unroll length. Two configs that differ in any
+    of these get different directories, so the resume logic in pipeline.py
+    (skip when optimized.nc exists) cannot hand one config another's run.
+    Pass result['params'] when the hyperparameters were overridden."""
     loss, opt, run = cfg["loss"], cfg["optimizer"], cfg["run"]
     p = {
         "learning_rate": opt["learning_rate"],
@@ -28,15 +35,23 @@ def make_run_dir(cfg: dict, params: dict | None = None) -> str:
     }
     if params:
         p.update({k: params[k] for k in p if k in params})
-    parts = [
+
+    def tok(prefix, value):
+        return prefix + str(value).replace(".", "p").replace("-", "m")
+
+    init = np.datetime_as_string(np.datetime64(run["init_date"]), unit="D")
+    weights = "x".join(tok("", f"{float(loss['lambda_weights'][k]):g}")
+                       for k in WEIGHT_KEYS)
+    name = "_".join([
         cfg["event"]["name"],
-        f"lr{float(p['learning_rate']):.0e}",
-        f"it{p['iterations']}",
-        f"lam{p['lam']}",
-        f"b{p['beta']}",
-        f"d{p['evol_days']:.0f}",
-    ]
-    name = "_".join(str(x).replace(".", "p").replace("-", "m") for x in parts)
+        "i" + init.replace("-", ""),
+        tok("lr", f"{float(p['learning_rate']):.0e}"),
+        tok("it", p["iterations"]),
+        tok("lam", p["lam"]),
+        tok("b", p["beta"]),
+        "w" + weights,
+        tok("d", f"{float(p['evol_days']):.0f}"),
+    ])
     path = os.path.join(cfg["paths"]["output_dir"], name)
     os.makedirs(path, exist_ok=True)
     return path
