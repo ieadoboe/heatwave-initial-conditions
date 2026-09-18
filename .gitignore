@@ -58,3 +58,13 @@ data/ensembles/
 
 # Streamed IC stores (built by scripts/build_ics.py, tens of GB).
 data/era5_ic_*.zarr/
+
+# Reference PDFs. Publisher copies, so not ours to redistribute from a public
+# repo, and 174 MB besides. The two text files stay tracked: they record which
+# papers belong here and where each one came from, so the shelf is
+# reconstructible without shipping the shelf.
+papers/*
+!papers/sensitivity_sources/
+papers/sensitivity_sources/*
+!papers/sensitivity_sources/README.md
+!papers/zenodo_record.json
