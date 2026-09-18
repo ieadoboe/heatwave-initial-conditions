@@ -16,6 +16,7 @@ import pandas as pd
 from heatwave_ic.data import build_ic_zarr, load_ic_on_model_grid
 from heatwave_ic.evaluate import box_t1000_trajectory
 from heatwave_ic.optimize import encode_initial_state, optimize_ic, target_indices
+from heatwave_ic.config import unrooted
 from heatwave_ic.outputs import (make_run_dir, save_losses, save_state_fields,
                                  save_trajectory_nc)
 from heatwave_ic.zones import classify_event
@@ -47,7 +48,7 @@ def run_event(cfg: dict, model=None, *, skip_existing: bool = False,
     }
 
     out_dir = Path(make_run_dir(cfg))
-    summary["run_dir"] = str(out_dir)
+    summary["run_dir"] = unrooted(out_dir)
     if skip_existing and (out_dir / "optimized.nc").exists():
         summary["status"] = "skipped (existing run)"
         storyline = out_dir / "storyline.csv"

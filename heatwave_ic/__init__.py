@@ -19,7 +19,7 @@ Typical notebook usage (GPU + GCS access, i.e. Colab):
 """
 
 from heatwave_ic.config import (ARCO_ERA5_PATH, load_config, resolve_config,
-                                describe, rooted)
+                                describe, rooted, unrooted)
 from heatwave_ic.model import load_model
 from heatwave_ic.data import (
     open_arco_era5,

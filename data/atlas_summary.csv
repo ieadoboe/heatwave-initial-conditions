@@ -1,8 +1,8 @@
 event,zone,koppen_point,koppen_cell,init_date,evol_days,run_dir,status,final_loss,final_box_T_C,final_reg,storyline_gain_C,n_members,ens_mean_peak_C,ens_max_peak_C,ens_peak_spread_C,gain_vs_ens_max_C,gain_over_spread
-pnw_jun2021,maritime coastal,Dsb,Dfb,2021-06-20,11.0,/home/ieadoboe/scratch/heatwave/data/opt_runs/pnw_jun2021_lr1em09_it75_lam20_b10_d11,ok,170.0654,34.32,0.0016700892010703,9.53,75,31.21,34.16,1.59,5.56,5.36
-stjohns_aug2025,maritime coastal,Dfc,Dfb,2025-08-06,9.0,/home/ieadoboe/scratch/heatwave/data/opt_runs/stjohns_aug2025_lr5em09_it75_lam100_b10_d9,ok,3710.0342,23.61,35.39862823486328,3.86,75,20.19,21.65,0.65,3.83,8.09
-moscow_jul2010,continental interior,Dfb,Dfb,2010-07-23,9.0,/home/ieadoboe/scratch/heatwave/data/opt_runs/moscow_jul2010_lr5em09_it75_lam100_b10_d9,ok,175.7651,32.59,0.0811041370034217,7.48,75,32.74,35.49,1.04,3.25,5.79
-japan_jul2018,subtropical humid,Cfa,Cfa,2018-07-17,7.0,/home/ieadoboe/scratch/heatwave/data/opt_runs/japan_jul2018_lr5em09_it75_lam100_b10_d7,ok,173.1894,28.19,0.0028354867827147,2.32,75,28.05,28.52,0.2,1.8,11.28
-sahel_apr2024,arid,BSh,BSh,2024-03-28,8.0,/home/ieadoboe/scratch/heatwave/data/opt_runs/sahel_apr2024_lr5em09_it75_lam100_b10_d8,ok,175.2605,35.61,0.0103053692728281,4.2,75,37.59,39.14,0.61,2.56,6.71
-brazil_nov2023,tropical,Aw,Aw,2023-11-08,11.0,/home/ieadoboe/scratch/heatwave/data/opt_runs/brazil_nov2023_lr5em09_it75_lam100_b10_d11,ok,184.8098,28.7,0.1320075839757919,4.01,75,27.9,29.0,0.55,4.02,9.25
-siberia_jun2020,polar/high-latitude,Dfd,Dfd,2020-06-14,11.0,/home/ieadoboe/scratch/heatwave/data/opt_runs/siberia_jun2020_lr5em09_it75_lam100_b10_d11,ok,167.4964,25.59,0.0194047093391418,1.17,75,26.38,28.94,1.56,0.7,2.1
+pnw_jun2021,maritime coastal,Dsb,Dfb,2021-06-20,11.0,data/opt_runs/pnw_jun2021_lr1em09_it75_lam20_b10_d11,ok,170.0654,34.32,0.0016700892010703,9.53,75,31.21,34.16,1.59,5.56,5.36
+stjohns_aug2025,maritime coastal,Dfc,Dfb,2025-08-06,9.0,data/opt_runs/stjohns_aug2025_lr5em09_it75_lam100_b10_d9,ok,3710.0342,23.61,35.39862823486328,3.86,75,20.19,21.65,0.65,3.83,8.09
+moscow_jul2010,continental interior,Dfb,Dfb,2010-07-23,9.0,data/opt_runs/moscow_jul2010_lr5em09_it75_lam100_b10_d9,ok,175.7651,32.59,0.0811041370034217,7.48,75,32.74,35.49,1.04,3.25,5.79
+japan_jul2018,subtropical humid,Cfa,Cfa,2018-07-17,7.0,data/opt_runs/japan_jul2018_lr5em09_it75_lam100_b10_d7,ok,173.1894,28.19,0.0028354867827147,2.32,75,28.05,28.52,0.2,1.8,11.28
+sahel_apr2024,arid,BSh,BSh,2024-03-28,8.0,data/opt_runs/sahel_apr2024_lr5em09_it75_lam100_b10_d8,ok,175.2605,35.61,0.0103053692728281,4.2,75,37.59,39.14,0.61,2.56,6.71
+brazil_nov2023,tropical,Aw,Aw,2023-11-08,11.0,data/opt_runs/brazil_nov2023_lr5em09_it75_lam100_b10_d11,ok,184.8098,28.7,0.1320075839757919,4.01,75,27.9,29.0,0.55,4.02,9.25
+siberia_jun2020,polar/high-latitude,Dfd,Dfd,2020-06-14,11.0,data/opt_runs/siberia_jun2020_lr5em09_it75_lam100_b10_d11,ok,167.4964,25.59,0.0194047093391418,1.17,75,26.38,28.94,1.56,0.7,2.1

@@ -22,6 +22,7 @@ from tqdm import tqdm
 from heatwave_ic.data import build_ic_zarr, load_ic_on_model_grid
 from heatwave_ic.evaluate import box_t1000_trajectory
 from heatwave_ic.optimize import encode_initial_state, target_indices
+from heatwave_ic.config import unrooted
 from heatwave_ic.outputs import make_run_dir
 
 
@@ -104,7 +105,7 @@ def run_event_ensemble(cfg: dict, model=None, *, n_members: int = 75,
     name = event["name"]
     out_dir = Path(make_run_dir(cfg))
     summary = {"event": name, "zone": event.get("zone", ""),
-               "run_dir": str(out_dir)}
+               "run_dir": unrooted(out_dir)}
 
     storyline_path = out_dir / "storyline.csv"
     if not storyline_path.exists():

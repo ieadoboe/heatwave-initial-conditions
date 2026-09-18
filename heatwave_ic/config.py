@@ -103,6 +103,22 @@ def rooted(rel: str | Path) -> str:
     return os.path.join(root, rel)
 
 
+def unrooted(path: str | Path) -> str:
+    """Inverse of rooted(): the repo-relative form of an output path.
+
+    Summary tables record this rather than the resolved path, so a results
+    table does not carry one machine's scratch layout (and one user's home
+    directory) into the repository."""
+    path = str(path)
+    root = os.environ.get("HEATWAVE_ROOT")
+    if root:
+        try:
+            return str(Path(path).relative_to(root))
+        except ValueError:
+            pass
+    return path
+
+
 def describe(cfg: dict) -> str:
     """One-paragraph summary of a resolved config (print it in notebooks)."""
     event, run, loss, opt = cfg["event"], cfg["run"], cfg["loss"], cfg["optimizer"]
