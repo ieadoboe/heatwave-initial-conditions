@@ -26,25 +26,47 @@ from heatwave_ic.outputs import make_run_dir
 
 
 def run_ensemble(model, eval_era5, cfg: dict, n_members: int = 75,
-                 progress: bool = True) -> pd.DataFrame:
+                 progress: bool = True, members_dir=None) -> pd.DataFrame:
     """Unroll n_members stochastic realizations of the unperturbed IC.
     Returns a DataFrame of hourly box-mean T1000 (°C) trajectories, one
     column per member. Member seeds are rng_seed + 0..n-1, so member_000
-    reproduces the control run's seed."""
+    reproduces the control run's seed.
+
+    members_dir: if given (e.g. a mounted Drive folder like
+    .../heatwave_atlas/ensembles/EXP75/<event>), each member is written to
+    member_NNN.csv AS IT COMPLETES and already-written members are read back
+    instead of recomputed — so a killed session resumes at the exact member
+    it died on, not from zero."""
     event, run = cfg["event"], cfg["run"]
     lat_i, lon_i = target_indices(
         eval_era5, event["target_lat"], event["target_lon_east"])
     outer_steps = int(round(run["evol_days"] * 24))
     base_seed = int(run["rng_seed"])
+    if members_dir is not None:
+        members_dir = Path(members_dir)
+        members_dir.mkdir(parents=True, exist_ok=True)
 
     columns = {}
     members = range(n_members)
     bar = tqdm(members, desc=f"ensemble {event['name']}") if progress else members
     for i in bar:
+        name = f"member_{i:03d}"
+        member_file = members_dir / f"{name}.csv" if members_dir else None
+        if member_file is not None and member_file.exists():
+            try:
+                cached = pd.read_csv(member_file, index_col=0, parse_dates=True)
+                if len(cached) == outer_steps:
+                    columns[name] = cached.iloc[:, 0]
+                    continue
+            except Exception:
+                pass  # partial/corrupt file from a dead session — recompute.
         state, forcings = encode_initial_state(
             model, eval_era5, rng_seed=base_seed + i)
-        columns[f"member_{i:03d}"] = box_t1000_trajectory(
+        series = box_t1000_trajectory(
             model, state, forcings, outer_steps, lat_i, lon_i, run["init_date"])
+        columns[name] = series
+        if member_file is not None:
+            series.to_frame("box_T1000_C").to_csv(member_file)
         del state, forcings
         gc.collect()
     return pd.DataFrame(columns)
@@ -68,13 +90,16 @@ def ensemble_metrics(ens: pd.DataFrame, opt_peak_C: float) -> dict:
 
 
 def run_event_ensemble(cfg: dict, model=None, *, n_members: int = 75,
-                       skip_existing: bool = True, progress: bool = True) -> dict:
+                       skip_existing: bool = True, progress: bool = True,
+                       members_dir=None) -> dict:
     """Ensemble baseline for one event whose optimization has already run.
 
     Needs the run dir's storyline.csv (for the optimized peak). Saves
     ensemble.csv next to it, writes the ensemble figure, and returns a
     summary row with the ensemble metrics. skip_existing reuses a saved
-    ensemble.csv when it already has >= n_members members."""
+    ensemble.csv when it already has >= n_members members; members_dir
+    (a durable folder) additionally makes the run resumable member-by-member
+    — see run_ensemble."""
     event = cfg["event"]
     name = event["name"]
     out_dir = Path(make_run_dir(cfg))
@@ -103,7 +128,7 @@ def run_event_ensemble(cfg: dict, model=None, *, n_members: int = 75,
     eval_era5 = load_ic_on_model_grid(model, cfg["paths"]["ic_zarr"])
 
     ens = run_ensemble(model, eval_era5, cfg, n_members=n_members,
-                       progress=progress)
+                       progress=progress, members_dir=members_dir)
     ens.to_csv(ens_path)
     summary.update(status="ok", **ensemble_metrics(ens, opt_peak))
 
