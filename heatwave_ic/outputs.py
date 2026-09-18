@@ -1,10 +1,17 @@
 """Run directories and on-disk outputs (data/ per project convention)."""
 
+import numbers
 import os
 from pathlib import Path
 
 import jax.numpy as jnp
 import numpy as np
+
+# What netCDF accepts as an attribute value. Note bool is deliberately absent:
+# xarray's validator lets it through because Python bools are ints, but the
+# netCDF4 writer then rejects the b1 dtype, so booleans are converted instead.
+_NC_ATTR_TYPES = (str, bytes, numbers.Number, np.ndarray, np.number)
+_NC_SEQ_TYPES = (list, tuple)
 
 
 def make_run_dir(cfg: dict, params: dict | None = None) -> str:
@@ -56,6 +63,45 @@ def save_state_fields(model, state, out_dir: str | Path, tag: str) -> None:
     np.save(str(out_dir / f"divergence_{tag}"), div)
 
 
+def _nc_safe(value):
+    """A netCDF-writable form of an attribute value, or None to drop it."""
+    if isinstance(value, (bool, np.bool_)):
+        return int(value)          # netCDF has no boolean attribute type
+    if isinstance(value, _NC_ATTR_TYPES):
+        return value
+    if isinstance(value, _NC_SEQ_TYPES):
+        items = [_nc_safe(x) for x in value]
+        if items and all(x is not None for x in items):
+            return items
+    return None
+
+
+def drop_unwritable_attrs(ds):
+    """Remove attributes netCDF cannot serialize, on the dataset and on every
+    variable.
+
+    dinosaur tags a decoded dataset with attrs such as
+    basis_as_jax_arrays=None, and xarray refuses to write a None-valued attr
+    ("Invalid value for attr ... its value must be of one of the following
+    types"). Older xarray let it through, which is why this only shows up off
+    Colab. Nothing downstream reads these, so dropping them loses nothing."""
+    def keep(attrs):
+        out = {}
+        for k, v in attrs.items():
+            v = _nc_safe(v)
+            if v is not None:
+                out[k] = v
+        return out
+
+    ds = ds.copy(deep=False)
+    ds.attrs = keep(ds.attrs)
+    for name, var in ds.variables.items():
+        dropped = keep(var.attrs)
+        if len(dropped) != len(var.attrs):
+            ds[name].attrs = dropped
+    return ds
+
+
 def save_trajectory_nc(model, state, all_forcings, steps: int,
                        path: str | Path, variables: list[str] | None = None) -> None:
     """Unroll a state and write the trajectory to netCDF."""
@@ -63,4 +109,4 @@ def save_trajectory_nc(model, state, all_forcings, steps: int,
     ds = model.data_to_xarray(preds, times=np.arange(steps))
     if variables:
         ds = ds[variables]
-    ds.to_netcdf(str(path))
+    drop_unwritable_attrs(ds).to_netcdf(str(path))
