@@ -5,7 +5,8 @@ save run outputs -> storyline evaluation -> plots -> Köppen tags, and returns
 a one-row summary dict. scripts/optimize_event.py runs one event through it;
 scripts/run_atlas.py sweeps every event config and collects the atlas table.
 
-RUNTIME: needs a GPU and GCS access — run on Colab, not the local CPU venv.
+RUNTIME: needs a GPU and GCS access. Run it on Nibi (hpc/nibi/), not the
+local CPU venv.
 """
 
 from pathlib import Path

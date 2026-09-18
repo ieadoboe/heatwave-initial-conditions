@@ -6,7 +6,7 @@ adapted from Tim Whittaker's ExtremeStorylines / Whittaker & Di Luca 2026).
 An "event" (St. John's Aug 2025, PNW Jun 2021, ...) is a YAML file in
 configs/; notebooks call these functions instead of re-writing the pipeline.
 
-Typical notebook usage (GPU + GCS access, i.e. Colab):
+Typical usage (needs a GPU and GCS access, so a Nibi node):
 
     from heatwave_ic import (load_config, load_model, build_ic_zarr,
                              load_ic_on_model_grid, optimize_event)

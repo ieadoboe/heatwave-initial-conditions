@@ -6,7 +6,8 @@
 Does: IC build (if needed) -> optimize -> save outputs -> storyline
 evaluation -> figures. For the whole event set use scripts/run_atlas.py.
 
-RUNTIME: needs a GPU and GCS access — run on Colab, not the local CPU venv.
+RUNTIME: needs a GPU and GCS access. Run it on Nibi (hpc/nibi/), not the
+local CPU venv.
 """
 
 import argparse

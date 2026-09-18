@@ -10,7 +10,8 @@ skipped (their storyline gain is read back) unless --rerun is given; a
 failure in one event does not stop the sweep. Writes the cross-zone summary
 to data/atlas_summary.csv.
 
-RUNTIME: needs a GPU and GCS access — run on Colab, not the local CPU venv.
+RUNTIME: needs a GPU and GCS access. Run it on Nibi (hpc/nibi/), not the
+local CPU venv.
 The PNW validation run comes first by default: if it does not reproduce
 W&DL's +3.7 C storyline, fix that before trusting the rest.
 """
@@ -71,12 +72,12 @@ def main():
                              "scripts/collect_summaries.py, or they overwrite "
                              "one another's rows.")
     parser.add_argument("--persist-dir", default=None,
-                        help="Durable directory (e.g. a mounted Google Drive "
-                             "folder): completed runs are restored from it at "
-                             "start and synced back after every event, so the "
-                             "atlas resumes across Colab sessions. IC zarrs "
-                             "are NOT persisted (too large) — they rebuild "
-                             "automatically when missing.")
+                        help="Durable directory (on Nibi, $HEATWAVE_PERSIST): "
+                             "completed runs are restored from it at start "
+                             "and synced back after every event, so the atlas "
+                             "resumes across jobs. IC zarrs are NOT persisted "
+                             "(too large); they rebuild automatically when "
+                             "missing.")
     args = parser.parse_args()
 
     persist = Path(args.persist_dir) if args.persist_dir else None
