@@ -116,9 +116,8 @@ spread, and the gain against both.
 
 **The committed table is not current.** Those rows predate the
 reference-scale fix, so their gains are not comparable with anything after
-2026-09-16, one event finished on a blow-up rather than a minimum, and
-`run_dir` holds absolute cluster paths. Re-run before citing, then check with
-`scripts/check_run.py`.
+2026-09-16, and one event finished on a blow-up rather than a minimum.
+Re-run before citing, then check with `scripts/check_run.py`.
 
 ## References
 

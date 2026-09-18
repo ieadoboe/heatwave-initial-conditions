@@ -124,7 +124,7 @@ sbatch hpc/nibi/02_run_atlas.sbatch
 sbatch hpc/nibi/03_run_ensembles.sbatch
 
 # 6. Combine the seven per-event tables into one.
-python scripts/collect_summaries.py --persist-dir "$HEATWAVE_PERSIST"
+"$HEATWAVE_VENV/bin/python" scripts/collect_summaries.py --persist-dir "$HEATWAVE_PERSIST"
 ```
 
 To see where things stand at any point, run `bash hpc/nibi/status.sh`. It
@@ -156,15 +156,16 @@ regularization reference scale changed. Re-running step 4 keeps the optimization
 
 ## GPU sizing
 
-The scripts request `h100_2g.20gb`, two eighths of an H100 with 20 GB. That
-costs 3.5 reference GPU units against your allocation, against 12.2 for a whole
-H100, and MIG jobs start sooner because roughly half of Nibi's GPU nodes are
-partitioned. The ensemble members are forward-only and small. If the
-optimization runs out of memory backpropagating through a 264-step unroll,
-raise the request to `h100_3g.40gb:1`, then `h100:1`.
+The scripts request `h100_3g.40gb`, three eighths of an H100 with 40 GB. A
+MIG slice costs a fraction of the 12.2 reference GPU units a whole H100
+charges against your allocation, and MIG jobs start sooner because roughly
+half of Nibi's GPU nodes are partitioned. The ensemble members are
+forward-only and small. If the optimization runs out of memory
+backpropagating through a 264-step unroll, raise the request to `h100:1`.
 
-`env.sh` sets `XLA_PYTHON_CLIENT_PREALLOCATE=false` so JAX grows its allocation
-on demand and `nvidia-smi` reports real usage during calibration.
+`calibrate.sh` sets `XLA_PYTHON_CLIENT_PREALLOCATE=false` so JAX grows its
+allocation on demand and `nvidia-smi` reports real usage during calibration.
+The batch jobs leave JAX's default preallocation on.
 
 ## Checking a run
 

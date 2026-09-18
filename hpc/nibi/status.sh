@@ -37,7 +37,8 @@ echo
 echo "=== stage 2: optimizations ==="
 n=0
 for e in "${EVENTS[@]}"; do
-    run=$(ls -d "$HEATWAVE_PERSIST"/opt_runs/"$e"_* 2>/dev/null | head -1)
+    # Newest run directory first, so a stale earlier run is not reported.
+    run=$(ls -dt "$HEATWAVE_PERSIST"/opt_runs/"$e"_* 2>/dev/null | head -1)
     if [ -n "$run" ] && [ -f "$run/storyline.csv" ]; then
         # The venv's python explicitly: a plain `python` is the bare module
         # interpreter, which has no pandas unless the venv is activated.

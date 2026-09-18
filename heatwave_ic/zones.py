@@ -56,7 +56,7 @@ def _load():
 
 
 def koppen_grid():
-    """The raw 0.5° map: (classes uint8 [lat, lon], lat, lon, codes)."""
+    """The raw 0.1° map: (classes uint8 [lat, lon], lat, lon, codes)."""
     return _load()
 
 
