@@ -40,3 +40,21 @@ logs/*.err
 
 # CDS keys
 .cdsapirc
+# Personal writing — thesis drafts, supervisor and progress reports.
+# Public repo: keep these local.
+docs/
+
+# ERA5 downloads and derived fields — regenerate, don't store.
+# git keeps every version forever, so 360 MB of netCDF never leaves the history.
+#   data/era5_europe/     <- scripts/download_era5_europe_daily.py  (335 MB)
+#   heatwave_threshold_*  <- scripts/detect_heatwaves_europe.py     (25 MB)
+data/era5_europe/
+data/heatwave_threshold_*.nc
+
+# Optimizer run outputs: ~4 MB of .npy spectral fields per event, rebuilt by
+# a Nibi run. The summary CSVs in data/ carry the numbers worth citing.
+data/opt_runs/
+data/ensembles/
+
+# Streamed IC stores (built by scripts/build_ics.py, tens of GB).
+data/era5_ic_*.zarr/
