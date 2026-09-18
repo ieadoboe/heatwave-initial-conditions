@@ -34,7 +34,7 @@ UNTESTED locally.
 
 Outputs (under output_dir): optimized.nc, original.nc, losses.npy, plus
 optimized/original log-surface-pressure, vorticity, divergence .npy fields.
-Plot: plots/stjohns_opt_loss.pdf
+Plot: plots/exploratory/stjohns_opt_loss.pdf
 """
 
 import argparse
@@ -304,7 +304,7 @@ def main(config):
     save_state_fields(initial_state, "original")
     print("Trajectories saved!")
 
-    # Loss-curve diagnostic (plots/ per CLAUDE.md).
+    # Loss-curve diagnostic (plots/<experiment>/ per CLAUDE.md).
     plots_dir = Path(config["plots_dir"])
     plots_dir.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(7, 4))

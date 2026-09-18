@@ -27,8 +27,8 @@ This is a DRAFT to review/run there; it has not been executed locally.
 Outputs:
   data/heatwave_leadtime_stjohns_aug2025.nc   per-lead St. John's daily-max T1000
   data/heatwave_leadtime_skill_aug2025.csv    skill vs lead time
-  plots/heatwave_leadtime_trajectories.pdf     spaghetti of forecasts vs ERA5
-  plots/heatwave_leadtime_skill.pdf            skill metric vs lead time
+  plots/leadtime/heatwave_leadtime_trajectories.pdf   spaghetti vs ERA5
+  plots/leadtime/heatwave_leadtime_skill.pdf          skill vs lead time
 """
 
 import gc
@@ -81,7 +81,7 @@ STJOHNS_LON = 360.0 - 52.7126   # ≈ 307.29 °E
 RNG_SEED = 42
 
 DATA_DIR = Path("data")
-PLOTS_DIR = Path("plots")
+PLOTS_DIR = Path("plots/leadtime")
 
 # ──────────────────────────────────────────────────────────────────────────
 # Load model + open ERA5 + build regridder (identical to the 2020 notebook)

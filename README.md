@@ -67,7 +67,8 @@ catalogue has 32.
 | `scripts/` | Command-line entry points, one per stage |
 | `hpc/nibi/` | SLURM job arrays and cluster environment setup |
 | `tests/` | Self-checking scripts. Run them directly; `pytest` collects nothing |
-| `data/`, `plots/` | All outputs, by path relative to the project root |
+| `data/` | All data outputs, by path relative to the project root |
+| `plots/` | All figures, grouped by experiment: `atlas/`, `detection/`, `leadtime/`, `exploratory/` |
 
 ERA5 downloads, the percentile climatology, run directories and IC zarr stores
 are gitignored: a script rebuilds each, and git would keep every version

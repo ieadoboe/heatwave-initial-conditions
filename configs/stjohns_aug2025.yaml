@@ -49,4 +49,4 @@ paths:
   era5_arco: "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"
   # ic_zarr: data/era5_ic_stjohns_aug2025_2025-08-06.zarr   (default, derived)
   output_dir: "data/opt_runs"
-  plots_dir: "plots"
+  plots_dir: "plots/atlas"

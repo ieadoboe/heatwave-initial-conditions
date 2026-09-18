@@ -54,4 +54,4 @@ init:
 save_every_iters: 25        # save intermediate trajectories every N iterations.
 rng_seed: 42
 output_dir: "data/stjohns_opt"
-plots_dir: "plots"
+plots_dir: "plots/exploratory"

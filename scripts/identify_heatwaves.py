@@ -16,10 +16,10 @@ Inputs (in data/):
   If the Tmin file is absent, only CTX90pct is computed and CTN90pct/EHF are
   skipped with a warning — re-run once the Tmin archive is present.
 
-Outputs:
-  - heatwave_events.csv      catalogue of all detected events
-  - heatwave_summary.csv     yearly aspect summary (HWN, HWD, HWF, HWA, HWM)
-  - heatwave_timeseries.pdf  time series of yearly heatwave frequency
+Outputs (project convention: data/ for tables, plots/<experiment>/ for figures):
+  - data/heatwave_events.csv               catalogue of all detected events
+  - data/heatwave_summary.csv              yearly aspects (HWN, HWD, HWF, HWA, HWM)
+  - plots/exploratory/heatwave_timeseries.pdf   yearly heatwave frequency
 """
 
 import sys
@@ -57,7 +57,12 @@ WINDOW = 7   # 15-day window total, as in Perkins & Alexander
 # Minimum consecutive days to qualify as a heatwave
 MIN_DURATION = 3
 
-OUTPUT_DIR = Path(".")
+# Tables to data/, figures to plots/<experiment>/. This is the single-point
+# St. John's precursor to the gridded detection in heatwave_ic/detect.py, so
+# its figure belongs with the exploratory work rather than under detection/.
+REPO = Path(__file__).resolve().parents[1]
+DATA_DIR = REPO / "data"
+PLOTS_DIR = REPO / "plots" / "exploratory"
 
 # ─────────────────────────────────────────────
 # Load whatever years are available
@@ -289,7 +294,8 @@ if have_tmin:
     cats.append(build_catalogue(ehf_events, ehf_series, "EHF"))
 
 catalogue = pd.concat(cats, ignore_index=True)
-catalogue.to_csv(OUTPUT_DIR / "heatwave_events.csv", index=False)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+catalogue.to_csv(DATA_DIR / "heatwave_events.csv", index=False)
 print(f"\nEvent catalogue saved: heatwave_events.csv "
       f"({len(catalogue)} total events)")
 
@@ -330,7 +336,7 @@ if have_tmin:
                                         YEAR_START, YEAR_END))
 
 summary = pd.concat(summary_parts, ignore_index=True)
-summary.to_csv(OUTPUT_DIR / "heatwave_summary.csv", index=False)
+summary.to_csv(DATA_DIR / "heatwave_summary.csv", index=False)
 print("Yearly aspect summary saved: heatwave_summary.csv")
 
 # Plot - Yearly HWF (heatwave days per year)
@@ -369,7 +375,8 @@ if N_YEARS < 30:
     suptitle += f"  [PRELIMINARY: {N_YEARS}-yr baseline]"
 fig.suptitle(suptitle, fontsize=13, fontweight="bold")
 plt.tight_layout()
-plt.savefig(OUTPUT_DIR / "heatwave_timeseries.pdf", bbox_inches="tight")
+PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+plt.savefig(PLOTS_DIR / "heatwave_timeseries.pdf", bbox_inches="tight")
 plt.close()
 print("Plot saved: heatwave_timeseries.pdf")
 

@@ -46,4 +46,4 @@ loss:
 paths:
   era5_arco: "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"
   output_dir: "data/opt_runs"
-  plots_dir: "plots"
+  plots_dir: "plots/atlas"

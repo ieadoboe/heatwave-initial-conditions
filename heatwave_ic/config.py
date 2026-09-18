@@ -11,6 +11,7 @@ returns a plain dict with everything downstream code needs already resolved:
   - run.evol_days  = explicit value, or (event.end - init_date) in days
   - run.lead_days  = (event.peak - init_date) in days (derived if init given)
   - paths.ic_zarr  defaults to data/era5_ic_{event.name}_{init_date}.zarr
+  - paths.plots_dir defaults to plots/atlas (figures group by experiment)
 
 Set HEATWAVE_ROOT to move every relative output path under another directory,
 keeping the repo's data/ and plots/ layout inside it. Batch jobs on a cluster
@@ -86,7 +87,7 @@ def resolve_config(cfg: dict) -> dict:
     init_str = np.datetime_as_string(run["init_date"], unit="D")
     paths.setdefault("ic_zarr", f"data/era5_ic_{event['name']}_{init_str}.zarr")
     paths.setdefault("output_dir", "data/opt_runs")
-    paths.setdefault("plots_dir", "plots")
+    paths.setdefault("plots_dir", "plots/atlas")
     for key in ("ic_zarr", "output_dir", "plots_dir"):
         paths[key] = rooted(paths[key])
     return cfg

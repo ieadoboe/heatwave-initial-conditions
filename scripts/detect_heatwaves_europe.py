@@ -12,7 +12,7 @@ Runs on a laptop: numpy, pandas, xarray, scipy and matplotlib only, no jax.
 Outputs (project convention: data/ and plots/):
   data/heatwave_events_europe_<year>.csv
   data/heatwave_threshold_europe.nc      cached percentile climatology
-  plots/heatwave_europe_<year>.pdf
+  plots/detection/heatwave_europe_<year>.pdf
 """
 
 import argparse
@@ -68,7 +68,7 @@ def footprint_koppen(det, event_id: int, zones) -> str:
 # HEATWAVE_ROOT re-roots outputs, as elsewhere in this project.
 ROOT = Path(os.environ.get("HEATWAVE_ROOT", REPO))
 DATA = ROOT / "data"
-PLOTS = ROOT / "plots"
+PLOTS = ROOT / "plots" / "detection"
 ERA5_DIR = DATA / "era5_europe"
 
 
