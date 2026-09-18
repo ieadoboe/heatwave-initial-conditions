@@ -1,0 +1,20 @@
+column,units,plain_english
+rank,-,"Position in this table. 1 is the most severe event of the year. Sorted on severity_C_km2_day, nothing else."
+event_id,-,"The label the detector stuck on this blob while scanning the grid. Arbitrary, use it to find the same event in the gridded labels array. It carries no ordering."
+start,date,"First day of the event, the first day any cell in it was above its threshold."
+peak,date,"The day the event was most intense, not the day it was widest: the day with the highest mean exceedance across the cells it covered."
+end,date,Last day of the event.
+duration_days,days,"How many days the event lasted, start to end inclusive. Minimum 3, because CTX90pct only calls it a heat wave after 3 consecutive days."
+peak_area_km2,km2,"Land area the event covered on its single biggest day. This is what the 50,000 km2 cut-off is applied to, so anything smaller than about half of Portugal at its widest was dropped."
+mean_area_km2,km2,"Average area the event covered per day, over the days it existed. Compare with peak_area_km2 to see whether it was steadily large or one big day surrounded by small ones."
+centroid_lat,degrees N,"Latitude of the event's centre of mass on its peak day, weighted by cell area."
+centroid_lon,degrees E,Longitude of that same centre of mass. Negative is west of Greenwich.
+peak_tmax_C,deg C,"The hottest daily maximum temperature reached anywhere inside the event, on any of its days. An absolute temperature, so southern events win this column almost by default."
+peak_tmax_lat,degrees N,Latitude of the cell that recorded peak_tmax_C.
+peak_tmax_lon,degrees E,Longitude of that same cell.
+max_anom_C,deg C,"The largest single exceedance in the event: how far above its own 90th-percentile threshold the most extreme cell-day got. Unlike peak_tmax_C this is relative to local climate, so a cool region can score highly."
+mean_anom_C,deg C,"Average exceedance over every cell-day in the event. Roughly, how far past normal-hot the whole event ran."
+severity_C_km2_day,deg C x km2 x day,"The headline number, and what rank sorts on. Add up, over every cell-day in the event, the exceedance in deg C times that cell's area in km2. An event scores highly only by being hot AND large AND long, so a one-day national record does not outrank a continental month. It is the gridded version of Russo's heat wave magnitude."
+n_cell_days,count,"How many grid-cell-days the event contains: cells covered, summed over days. Raw size in cells, so unlike the area columns it treats a small northern cell and a large southern one as equal."
+koppen,-,"The Koppen-Geiger climate class most common among the land cells this event ever touched, e.g. Dfb, Csa. The event's climate setting in one code."
+zone,-,"The coarse group that Koppen class belongs to: tropical, arid, temperate, cold (continental) or polar. This is the column to group by when comparing events across climates."
