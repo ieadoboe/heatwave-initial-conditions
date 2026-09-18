@@ -15,8 +15,12 @@ Checks, per run directory:
      See the regularization reference scale section of CLAUDE.md.
   2. Whether the run ever got below its own starting loss. If it did not, its
      "gain" is not a minimum.
-  3. Optionally, the storyline gain against an expected value (--expect-gain),
-     which is how the PNW run is validated against W&DL's +3.7 C.
+  3. Optionally, the gain against an expected value (--expect-gain), which is
+     how the PNW run is validated against W&DL's +3.7 C. W&DL measure that
+     against the hottest member of the 75-member stochastic ensemble, NOT
+     against the single unperturbed forecast, so this needs ensemble.csv in
+     the run directory (stage 3, scripts/run_ensembles.py) and refuses to
+     judge without it. See heatwave_ic/ensemble.py.
 
 Exits non-zero if any run fails a check, so a batch script stops on it.
 Needs numpy only: no jax, so it runs on a login node.
@@ -69,8 +73,8 @@ def reg_term_in_loss_units(losses, box_T_K, reg):
     return losses - heat_const / np.sqrt(box_T_K)
 
 
-def storyline_gain(run_dir: Path):
-    """max(optimized) - max(unperturbed) from storyline.csv, or None."""
+def _peaks(run_dir: Path):
+    """(optimized peak, unperturbed peak) in C from storyline.csv, or None."""
     path = run_dir / "storyline.csv"
     if not path.exists():
         return None
@@ -78,9 +82,39 @@ def storyline_gain(run_dir: Path):
         rows = list(csv.DictReader(fh))
     if not rows:
         return None
-    hot = max(float(r["optimized_C"]) for r in rows)
-    base = max(float(r["unperturbed_C"]) for r in rows)
-    return hot - base
+    return (max(float(r["optimized_C"]) for r in rows),
+            max(float(r["unperturbed_C"]) for r in rows))
+
+
+def storyline_gain(run_dir: Path):
+    """max(optimized) - max(unperturbed): the gain over the single
+    unperturbed forecast. NOT the quantity W&DL report."""
+    peaks = _peaks(run_dir)
+    return None if peaks is None else peaks[0] - peaks[1]
+
+
+def ensemble_gain(run_dir: Path):
+    """max(optimized) - the hottest peak of any ensemble member, which is
+    W&DL's quantity (heatwave_ic/ensemble.py: gain_vs_ens_max_C)."""
+    peaks = _peaks(run_dir)
+    path = run_dir / "ensemble.csv"
+    if peaks is None or not path.exists():
+        return None
+    with path.open() as fh:
+        rows = list(csv.DictReader(fh))
+    members = [c for c in (rows[0] if rows else {}) if c.startswith("member_")]
+    if not members:
+        return None
+    # A member column can hold blanks: an ensemble that was interrupted
+    # mid-write leaves a ragged final row.
+    peaks_by_member = [
+        max(float(r[m]) for r in rows if r.get(m) not in (None, ""))
+        for m in members
+        if any(r.get(m) not in (None, "") for r in rows)
+    ]
+    if not peaks_by_member:
+        return None
+    return peaks[0] - max(peaks_by_member)
 
 
 def check_run(run_dir: Path, max_reg_ratio: float,
@@ -110,18 +144,24 @@ def check_run(run_dir: Path, max_reg_ratio: float,
             f"({losses[0]:.4g}); ended at {losses[-1]:.4g}. Not a minimum.")
 
     gain = storyline_gain(run_dir)
+    ens_gain = ensemble_gain(run_dir)
     if expect_gain is not None:
-        if gain is None:
-            fails.append(f"{run_dir.name}: no storyline.csv, cannot check the gain")
-        elif abs(gain - expect_gain) > tol:
+        if ens_gain is None:
             fails.append(
-                f"{run_dir.name}: storyline gain {gain:+.2f} C is not "
-                f"{expect_gain:+.2f} +/- {tol:.2f} C")
+                f"{run_dir.name}: no ensemble.csv, so the gain W&DL report "
+                "cannot be computed. Run stage 3 (scripts/run_ensembles.py) "
+                "for this run first.")
+        elif abs(ens_gain - expect_gain) > tol:
+            fails.append(
+                f"{run_dir.name}: gain over the hottest ensemble member "
+                f"{ens_gain:+.2f} C is not {expect_gain:+.2f} +/- {tol:.2f} C")
 
     line = (f"{run_dir.name:44} iters={len(losses):3d} "
             f"reg1/heat={ratio:9.3g} loss {losses[0]:.4g} -> {losses[-1]:.4g} "
-            f"(min {losses.min():.4g}) gain="
-            + (f"{gain:+.2f} C" if gain is not None else "n/a"))
+            f"(min {losses.min():.4g})"
+            + (f" vs control {gain:+.2f} C" if gain is not None else "")
+            + (f" vs ens max {ens_gain:+.2f} C" if ens_gain is not None
+               else " vs ens max n/a"))
     return fails, line
 
 
@@ -138,8 +178,9 @@ def main():
                         help="Fail when the penalty after one step exceeds "
                              "this multiple of the heat term (default 1.0)")
     parser.add_argument("--expect-gain", type=float, default=None,
-                        help="Expected storyline gain in C, e.g. 3.7 for the "
-                             "PNW reproduction")
+                        help="Expected gain over the HOTTEST ENSEMBLE MEMBER "
+                             "in C, e.g. 3.7 for the PNW reproduction. Needs "
+                             "ensemble.csv in the run directory")
     parser.add_argument("--tol", type=float, default=0.5,
                         help="Tolerance on --expect-gain, in C (default 0.5)")
     args = parser.parse_args()

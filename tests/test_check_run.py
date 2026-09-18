@@ -23,7 +23,7 @@ BETA_T_REF = 10 * 293.15          # the heat term's constant
 LAM = 100
 
 
-def plant(tmp, name, reg, box_T_K, gain=None):
+def plant(tmp, name, reg, box_T_K, gain=None, ens_peak=None):
     """Write a run dir whose losses are consistent with reg and box_T."""
     d = Path(tmp) / name
     d.mkdir()
@@ -35,6 +35,14 @@ def plant(tmp, name, reg, box_T_K, gain=None):
         rows = [",unperturbed_C,optimized_C"]
         rows += [f"{i},20.0,{20.0 + gain}" for i in range(3)]
         (d / "storyline.csv").write_text("\n".join(rows) + "\n")
+    if ens_peak is not None:
+        # Two members; the hotter one peaks at ens_peak. The last row is
+        # ragged, as an interrupted ensemble write leaves it.
+        rows = [",member_000,member_001",
+                f"0,{ens_peak - 1.0},{ens_peak - 2.0}",
+                f"1,{ens_peak},{ens_peak - 3.0}",
+                "2,"]
+        (d / "ensemble.csv").write_text("\n".join(rows) + "\n")
     return d
 
 
@@ -43,7 +51,7 @@ with tempfile.TemporaryDirectory() as tmp:
     # --- healthy: tiny penalty, loss falls ----------------------------------
     box = np.linspace(295.0, 299.0, n)                  # box warms
     reg = np.concatenate([[0.0], np.full(n - 1, 1e-4)])
-    good = plant(tmp, "good", reg, box, gain=3.7)
+    good = plant(tmp, "good", reg, box, gain=9.0, ens_peak=25.3)
     fails, line = C.check_run(good, 1.0, None, 0.5)
     assert not fails, fails
     print("OK: a run with a small penalty and a falling loss passes.")
@@ -64,11 +72,24 @@ with tempfile.TemporaryDirectory() as tmp:
     assert any("never beat its starting value" in f for f in fails), fails
     print("OK: an iteration-1 blow-up is caught, and so is a loss that never improves.")
 
-    # --- the gain check -----------------------------------------------------
+    # --- the gain check ------------------------------------------------------
+    # optimized peak 29.0, hottest member 25.3, so W&DL's quantity is +3.7,
+    # while the gain over the unperturbed forecast is +9.0. The check must use
+    # the first, which is the whole point.
+    assert abs(C.storyline_gain(good) - 9.0) < 1e-9, C.storyline_gain(good)
+    assert abs(C.ensemble_gain(good) - 3.7) < 1e-9, C.ensemble_gain(good)
     fails, _ = C.check_run(good, 1.0, 3.7, 0.5)
     assert not fails, fails
-    fails, _ = C.check_run(good, 1.0, 9.5, 0.5)
-    assert any("storyline gain" in f for f in fails), fails
-    print("OK: the storyline gain is compared against the expected value.")
+    fails, _ = C.check_run(good, 1.0, 9.0, 0.5)
+    assert any("hottest ensemble member" in f for f in fails), fails
+    print("OK: the gain is measured against the hottest ensemble member, "
+          "not the control.")
+
+    # without an ensemble the check refuses to judge rather than comparing
+    # the wrong quantity
+    no_ens = plant(tmp, "no_ens", reg, box, gain=3.7)
+    fails, _ = C.check_run(no_ens, 1.0, 3.7, 0.5)
+    assert any("no ensemble.csv" in f for f in fails), fails
+    print("OK: a run with no ensemble is refused, not judged on the control.")
 
 print("\nALL CHECKS PASSED")
