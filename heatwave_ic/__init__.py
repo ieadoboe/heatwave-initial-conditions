@@ -18,7 +18,8 @@ Typical notebook usage (GPU + GCS access, i.e. Colab):
     sweep  = optimize_event(model, eval_era5, cfg, beta=20, iterations=30)
 """
 
-from heatwave_ic.config import ARCO_ERA5_PATH, load_config, resolve_config, describe
+from heatwave_ic.config import (ARCO_ERA5_PATH, load_config, resolve_config,
+                                describe, rooted)
 from heatwave_ic.model import load_model
 from heatwave_ic.data import (
     open_arco_era5,

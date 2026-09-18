@@ -11,8 +11,13 @@ returns a plain dict with everything downstream code needs already resolved:
   - run.evol_days  = explicit value, or (event.end - init_date) in days
   - run.lead_days  = (event.peak - init_date) in days (derived if init given)
   - paths.ic_zarr  defaults to data/era5_ic_{event.name}_{init_date}.zarr
+
+Set HEATWAVE_ROOT to move every relative output path under another directory,
+keeping the repo's data/ and plots/ layout inside it. Batch jobs on a cluster
+use it to write to scratch instead of into the checkout.
 """
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -82,7 +87,19 @@ def resolve_config(cfg: dict) -> dict:
     paths.setdefault("ic_zarr", f"data/era5_ic_{event['name']}_{init_str}.zarr")
     paths.setdefault("output_dir", "data/opt_runs")
     paths.setdefault("plots_dir", "plots")
+    for key in ("ic_zarr", "output_dir", "plots_dir"):
+        paths[key] = rooted(paths[key])
     return cfg
+
+
+def rooted(rel: str | Path) -> str:
+    """Place a relative output path under HEATWAVE_ROOT when that is set.
+    Absolute paths and remote URLs are returned unchanged."""
+    rel = str(rel)
+    root = os.environ.get("HEATWAVE_ROOT")
+    if not root or os.path.isabs(rel) or "://" in rel:
+        return rel
+    return os.path.join(root, rel)
 
 
 def describe(cfg: dict) -> str:

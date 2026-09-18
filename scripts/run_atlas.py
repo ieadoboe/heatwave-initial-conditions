@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pandas as pd  # noqa: E402
 
-from heatwave_ic import load_config, describe  # noqa: E402
+from heatwave_ic import load_config, describe, rooted  # noqa: E402
 from heatwave_ic.pipeline import run_event  # noqa: E402
 
 # Validation event first; then the in-hand maritime event; then new zones.
@@ -62,6 +62,14 @@ def main():
                         help="Re-run events even if a completed run dir exists")
     parser.add_argument("--no-eval", action="store_true",
                         help="Skip the storyline evaluation/figures")
+    parser.add_argument("--quiet", action="store_true",
+                        help="Drop the per-iteration progress bar (batch logs)")
+    parser.add_argument("--summary", default="data/atlas_summary.csv",
+                        help="Where to write the summary table. Parallel "
+                             "array tasks must each pass their own path and "
+                             "be combined afterwards with "
+                             "scripts/collect_summaries.py, or they overwrite "
+                             "one another's rows.")
     parser.add_argument("--persist-dir", default=None,
                         help="Durable directory (e.g. a mounted Google Drive "
                              "folder): completed runs are restored from it at "
@@ -74,12 +82,12 @@ def main():
     persist = Path(args.persist_dir) if args.persist_dir else None
     if persist:
         print(f"Restoring completed runs from {persist} ...")
-        _sync_tree(persist / "opt_runs", "data/opt_runs")
+        _sync_tree(persist / "opt_runs", rooted("data/opt_runs"))
 
     def sync_back():
         if persist:
-            _sync_tree("data/opt_runs", persist / "opt_runs")
-            _sync_tree("plots", persist / "plots")
+            _sync_tree(rooted("data/opt_runs"), persist / "opt_runs")
+            _sync_tree(rooted("plots"), persist / "plots")
 
     from heatwave_ic.model import load_model
     models = {}
@@ -95,7 +103,8 @@ def main():
         try:
             summary = run_event(cfg, models[model_name],
                                 skip_existing=not args.rerun,
-                                evaluate=not args.no_eval)
+                                evaluate=not args.no_eval,
+                                progress=not args.quiet)
         except Exception as exc:
             traceback.print_exc()
             summary = {"event": name, "status": f"FAILED: {exc}"}
@@ -114,11 +123,11 @@ def main():
         gc.collect()
 
     df = pd.DataFrame(rows)
-    out = Path("data/atlas_summary.csv")
-    out.parent.mkdir(exist_ok=True)
+    out = Path(rooted(args.summary))
+    out.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out, index=False)
     if persist:
-        shutil.copy2(out, persist / "atlas_summary.csv")
+        shutil.copy2(out, persist / out.name)
     print(f"\n{'=' * 70}\nAtlas summary -> {out}\n")
     print(df.to_string(index=False))
 
