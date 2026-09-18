@@ -1,10 +1,10 @@
-# PNW June 2021 heat wave (Lytton, BC) — Whittaker & Di Luca (2026) REPRODUCTION.
+# PNW June 2021 heat wave (Lytton, BC): Whittaker & Di Luca (2026) REPRODUCTION.
 # Purpose: validate our pipeline against the paper's +3.7 C storyline before
 # running new zones (Direction A step 1).
 #
-# Hyperparameters follow Tim's config_example.yaml + his hardcoded values
-# (T_ref=298.15, weights x100/x10). Every config now uses these. VERIFY
-# init_date against W&DL Table 1 (and tim_code/) before trusting a run.
+# Hyperparameters follow W&DL Table 1, EXP75 row (75 iterations, init
+# 2021-06-21, per-variable lambdas 100/10/1000/1000/100/10/10), not Tim's
+# config_example.yaml, which the other six configs use.
 
 model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
 
@@ -19,9 +19,11 @@ event:
   end: 2021-07-01
 
 run:
-  init_date: 2021-06-20    # TODO verify vs W&DL — chosen so init + 11 d
-                           # (Tim's evol_days) ends at event end, with the
-                           # last-5-day target window covering Jun 26 - Jul 1.
+  init_date: 2021-06-21    # W&DL Table 1, EXP75 row. With evol_days 11 the
+                           # unroll ends 2021-07-02, a day past event.end, so
+                           # the 5-day target window is Jun 27 to Jul 2. Was
+                           # 2021-06-20 (window Jun 26 to Jul 1); that extra
+                           # day of lead is a prime suspect for the +8.8 C run.
   evol_days: 11            # Tim's config_example.yaml
   rng_seed: 42
   save_every_iters: 25
@@ -29,18 +31,26 @@ run:
 optimizer:
   name: adam
   learning_rate: 1.0e-9    # W&DL's released value; the tuned 5e-9 did not converge.
-  iteration_number: 50       # W&DL's example file (Table 1 EXP75 uses 75).
+  iteration_number: 75       # Table 1 EXP75. The other six configs stay at
+                           # 50: this one is the reproduction.
 
 loss:
-  beta: 10                 # W&DL's released value.
-  lambda: 20               # W&DL's released value.
+  beta: 10                 # Table 1, EXP75.
+  lambda: 10               # Outer multiplier chosen so lambda * w_i equals
+                           # Table 1's EXP75 row exactly: lambda_T=100,
+                           # lambda_SP=10, lambda_div=1000, lambda_vort=1000,
+                           # lambda_SH=100, lambda_ice=10, lambda_liq=10.
+                           # Was 20, from Tim's config_example.yaml.
   T_ref: 298.15            # Tim's hardcoded value.
-  target_window_days: 5    # Tim's hardcoded -5*24.
-  lambda_weights:          # Tim's hardcoded x100/x10 multipliers.
+  target_window_days: 5    # Table 1's tau, the loss lead time.
+  lambda_weights:
     log_surface_pressure: 1
     divergence: 100
     vorticity: 100
-    temperature_variation: 100
+    temperature_variation: 10   # Table 1 weights T 10x BELOW divergence and
+                                # vorticity. Tim's code lumps all three at
+                                # x100, which is a code/paper discrepancy;
+                                # this row follows the paper.
     specific_humidity: 10
     specific_cloud_ice_water_content: 1
     specific_cloud_liquid_water_content: 1

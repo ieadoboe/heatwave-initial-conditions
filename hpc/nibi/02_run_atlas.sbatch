@@ -6,7 +6,8 @@
 #SBATCH --mem=48G
 #SBATCH --time=2:00:00
 #SBATCH --output=logs/nibi/atlas_%A_%a.out
-# One event's IC optimization per array task, 50 iterations as configured.
+# One event's IC optimization per array task, at the iterations its config
+# sets: 50, except PNW at 75.
 #
 # Walltime measured 2026-09-07 on Siberia, the longest event at 11 days:
 # 24.7 s per iteration, so the configured 50 iterations take ~21 min (it was
