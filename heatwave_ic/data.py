@@ -45,9 +45,11 @@ def shift_forcings(ds: xr.Dataset, model) -> xr.Dataset:
     )
 
 
-def _ic_is_valid(path: Path, model) -> bool:
+def _ic_is_valid(path: Path, model, t0=None) -> bool:
     """A usable IC store: opens, has non-empty grid dims, every model variable,
-    and the first snapshot actually reads back with finite values."""
+    starts at the expected init date, and the first snapshot actually reads
+    back with finite values. The t0 check also rejects stores written before
+    the forcing-shift ordering fix, which start 24 h late."""
     try:
         ds = xr.open_zarr(str(path), chunks=None)
         needed = set(model.input_variables + model.forcing_variables)
@@ -55,6 +57,8 @@ def _ic_is_valid(path: Path, model) -> bool:
                 and needed <= set(ds.data_vars)):
             return False
         if any(ds.sizes[d] == 0 for d in ("latitude", "longitude", "time")):
+            return False
+        if t0 is not None and np.datetime64(ds.time.values[0]) != np.datetime64(t0):
             return False
         # Probe one 2D field: catches missing/NaN-filled chunks from an
         # interrupted write that metadata alone would not reveal.
@@ -66,43 +70,87 @@ def _ic_is_valid(path: Path, model) -> bool:
         return False
 
 
-def build_ic_zarr(model, cfg: dict, window_days: int = 2, overwrite: bool = False) -> Path:
+def _drop_encoding(ds: xr.Dataset) -> xr.Dataset:
+    """Drop encoding inherited from the ARCO store (zarr-v2 numcodecs Blosc),
+    which zarr-python 3 cannot write out in its default v3 format."""
+    if hasattr(ds, "drop_encoding"):
+        return ds.drop_encoding()
+    for v in ds.variables.values():  # older xarray
+        v.encoding = {}
+    return ds
+
+
+def _write_zarr_in_blocks(window: xr.Dataset, path, block_snapshots: int = 6) -> None:
+    """Materialise and write `window` to a zarr store a few time-snapshots at
+    a time. Peak RAM = one block (~1 GB/snapshot at 0.25° x 37 levels), so
+    the build fits any Colab VM instead of needing ~50 GB for the full
+    window at once."""
+    n = window.sizes["time"]
+    for i in range(0, n, block_snapshots):
+        block = _drop_encoding(window.isel(time=slice(i, i + block_snapshots)).compute())
+        if i == 0:
+            block.to_zarr(str(path), mode="w")
+        else:
+            block.to_zarr(str(path), append_dim="time")
+        print(f"  block {i // block_snapshots + 1}: snapshots "
+              f"{i + 1}-{min(i + block_snapshots, n)} of {n} written")
+        del block
+        gc.collect()
+
+
+def build_ic_zarr(model, cfg: dict, window_days: int = 2, overwrite: bool = False,
+                  block_snapshots: int = 6, snapshots: int | None = 3) -> Path:
     """Slice the model's input+forcing variables at the config's init_date from
     ARCO-ERA5 and write the IC zarr that `load_ic_on_model_grid` regrids.
     No-op if a VALID zarr already exists (unless overwrite=True); a partial
-    store left by an interrupted write is rebuilt automatically."""
+    store left by an interrupted write is rebuilt automatically. The write is
+    streamed `block_snapshots` at a time (low peak RAM — works on standard
+    Colab VMs, not just High-RAM).
+
+    snapshots: how many hourly snapshots to keep, counted from init_date.
+    Every consumer calls load_ic_on_model_grid, which reads 2, and
+    encode_initial_state takes its forcings from the first one, so the
+    default of 3 stores what is used plus one spare instead of the ~50 GB a
+    full 2-day hourly window costs at 0.25 deg. Pass None to keep the window."""
     out = Path(cfg["paths"]["ic_zarr"])
+    t0 = np.datetime64(cfg["run"]["init_date"])
     if out.exists() and not overwrite:
-        if _ic_is_valid(out, model):
+        if _ic_is_valid(out, model, t0):
             print(f"IC already built: {out}")
             return out
-        print(f"Existing IC store is incomplete/corrupt — rebuilding: {out}")
-    t0 = np.datetime64(cfg["run"]["init_date"])
+        print(f"Existing IC store is incomplete, stale or corrupt — "
+              f"rebuilding: {out}")
     print(f"Opening ARCO-ERA5 and slicing the IC window at {t0} ...")
     full = open_arco_era5(cfg["paths"]["era5_arco"])
-    window = full[model.input_variables + model.forcing_variables].sel(
-        time=slice(t0, t0 + np.timedelta64(window_days, "D"))
+    # Shift the forcings BEFORE selecting the window. selective_temporal_shift
+    # truncates the head of whatever it is given by the shift (dinosaur does
+    # ds.isel(time=slice(24, None)) for +24 h), so selecting first would leave
+    # a store starting at init_date + 24 h while every consumer labels its
+    # first snapshot init_date. Pre-slicing a padded window keeps the shift
+    # off ARCO's full 80-year time axis.
+    pad = np.timedelta64(2, "D")
+    end = t0 + np.timedelta64(window_days, "D")
+    wide = full[model.input_variables + model.forcing_variables].sel(
+        time=slice(t0 - pad, end)
     )
-    window = window.pipe(
+    window = wide.pipe(
         xarray_utils.selective_temporal_shift,
         variables=model.forcing_variables,
         time_shift="24 hours",
-    )
+    ).sel(time=slice(t0, end))
+    if snapshots is not None:
+        window = window.isel(time=slice(0, snapshots))
+    if window.sizes["time"] == 0:
+        raise ValueError(
+            f"No ARCO-ERA5 snapshots at {t0} for {cfg['event']['name']}."
+        )
     out.parent.mkdir(parents=True, exist_ok=True)
     print(f"Materialising {window.sizes['time']} snapshots -> {out} ...")
-    data = window.compute()
-    # Drop the encoding inherited from the ARCO store (zarr-v2 numcodecs
-    # Blosc), which zarr-python 3 cannot write out in its default v3 format.
-    if hasattr(data, "drop_encoding"):
-        data = data.drop_encoding()
-    else:  # older xarray
-        for v in data.variables.values():
-            v.encoding = {}
     # Write to a temp path first so an interrupted write never leaves a
     # partial store at the final location.
     tmp = out.with_name(out.name + ".building")
     shutil.rmtree(tmp, ignore_errors=True)
-    data.to_zarr(str(tmp), mode="w")
+    _write_zarr_in_blocks(window, tmp, block_snapshots)
     shutil.rmtree(out, ignore_errors=True)
     os.replace(tmp, out)
     print("IC built.")
