@@ -1,7 +1,8 @@
 # St. John's, NL — Aug 2025 heat wave (Direction A maritime-coastal exemplar).
-# Hyperparameters = the TUNED values from notebooks/heatwave_stjohns_hyperparam_tuning
-# (Notion "Hyperparameter tuning", finalized 2026-07-13):
-#   beta=10, lambda=100, alpha=5e-9, w(specific_humidity)=50, lead 5-7 days.
+# Hyperparameters are W&DL's released settings, NOT the 2026-07-13 tuned values
+# (beta=10, lambda=100, alpha=5e-9). The tuned lr does not converge: see the
+# regularization reference scale section of CLAUDE.md. Still tuned here:
+# w(specific_humidity)=50 and the 5-7 day lead.
 
 model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
 
@@ -25,14 +26,12 @@ run:
 
 optimizer:
   name: adam
-  learning_rate: 5.0e-9    # tuned (sweep 3): stable and faster than 1e-9.
-  iteration_number: 75     # N optimization steps (paper EXP75).
+  learning_rate: 1.0e-9    # W&DL's released value; the tuned 5e-9 did not converge.
+  iteration_number: 50       # W&DL's example file (Table 1 EXP75 uses 75).
 
 loss:
-  beta: 10                 # tuned (sweeps 1-2): strength of the heat term.
-  lambda: 100              # tuned (sweeps 1-2): weight on the IC-perturbation
-                           # penalty. (The notebook's stale BEST cell says 20 —
-                           # 100 is the final choice.)
+  beta: 10                 # W&DL's released value.
+  lambda: 20               # W&DL's released value (was 100 when tuned).
   T_ref: 293.15            # St. John's characteristic summer T (K). DEGENERATE
                            # with beta (only beta*T_ref matters): set by
                            # principle, tune beta.

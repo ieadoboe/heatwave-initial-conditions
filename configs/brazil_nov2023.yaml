@@ -27,12 +27,12 @@ run:
 
 optimizer:
   name: adam
-  learning_rate: 5.0e-9
-  iteration_number: 75
+  learning_rate: 1.0e-9    # W&DL's released value; the tuned 5e-9 did not converge.
+  iteration_number: 50       # W&DL's example file (Table 1 EXP75 uses 75).
 
 loss:
-  beta: 10
-  lambda: 100
+  beta: 10                 # W&DL's released value.
+  lambda: 20               # W&DL's released value.
   T_ref: 298.15               # ~25 C — Rio late-spring characteristic T.
   target_window_days: 5
   lambda_weights:

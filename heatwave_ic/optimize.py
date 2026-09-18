@@ -7,11 +7,18 @@ one compiled loss instead of re-jitting per hyperparameter set.
 
 Loss (Eq 3 of the paper, with the code's sqrt):
     L = (beta * T_ref) / sqrt(mean(T_box, last window))
-        + lambda * sum_i  w_i * mean((dx_i)^2) / mean(x0_i)^2
+        + lambda * sum_i  w_i * mean((dx_i)^2) / mean(x0_i^2)
 
-NOTE: the reference scale mean(x0_i)^2 is fragile for near-zero-mean fields
-(vorticity, divergence, temperature anomaly) — kept to match Tim; switching to
-std/abs-mean would be a deliberate deviation (docs/meeting_notes.md).
+DEVIATION from the paper and from Tim's code: the per-variable reference scale
+is mean(x0_i^2), the mean squared magnitude, not mean(x0_i)^2, the square of
+the mean. The published form is degenerate for near-zero-mean spectral fields
+(vorticity, divergence, temperature_variation), where positive and negative
+lobes cancel and the denominator collapses toward zero. That made the
+regularization term start at 1e5 for St. John's and dominate the first Adam
+iteration, which moves every parameter by exactly the learning rate regardless
+of gradient size; the remaining iterations were spent undoing it.
+mean(x0_i^2) vanishes only for an identically zero field. Results produced
+before 2026-09-16 are not comparable with results after it.
 """
 
 import jax
@@ -99,9 +106,10 @@ def make_loss_fn(model, all_forcings, outer_steps: int, window_steps: int,
         reg_total = 0.0
         for k, key in enumerate(WEIGHT_KEYS):
             cur, init = _field(d0, key), _field(i0, key)
-            # Reference scale = (mean of the initial field)^2, as in Tim's code.
-            reg_total = reg_total + wvec[k] * jnp.mean((cur - init) ** 2) / (
-                jnp.mean(init) ** 2
+            # Reference scale = mean squared magnitude of the initial field,
+            # NOT mean(init)**2 as in Tim's code. See the module docstring.
+            reg_total = reg_total + wvec[k] * jnp.mean((cur - init) ** 2) / jnp.mean(
+                init ** 2
             )
 
         box_T = jnp.mean(

@@ -3,9 +3,8 @@
 # running new zones (Direction A step 1).
 #
 # Hyperparameters follow Tim's config_example.yaml + his hardcoded values
-# (T_ref=298.15, weights x100/x10) — NOT our St. John's tuned values, since the
-# point is to match the paper. VERIFY init_date / iteration_number against
-# W&DL Table 1 (and tim_code/) before trusting a run.
+# (T_ref=298.15, weights x100/x10). Every config now uses these. VERIFY
+# init_date against W&DL Table 1 (and tim_code/) before trusting a run.
 
 model_name: "v1_precip/stochastic_precip_2_8_deg.pkl"
 
@@ -29,12 +28,12 @@ run:
 
 optimizer:
   name: adam
-  learning_rate: 1.0e-9    # Tim's value.
-  iteration_number: 75     # paper EXP75 (Tim's example file says 50).
+  learning_rate: 1.0e-9    # W&DL's released value; the tuned 5e-9 did not converge.
+  iteration_number: 50       # W&DL's example file (Table 1 EXP75 uses 75).
 
 loss:
-  beta: 10                 # Tim's value.
-  lambda: 20               # Tim's value.
+  beta: 10                 # W&DL's released value.
+  lambda: 20               # W&DL's released value.
   T_ref: 298.15            # Tim's hardcoded value.
   target_window_days: 5    # Tim's hardcoded -5*24.
   lambda_weights:          # Tim's hardcoded x100/x10 multipliers.
