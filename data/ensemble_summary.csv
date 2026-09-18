@@ -1,0 +1,8 @@
+event,zone,run_dir,status,n_members,ens_mean_peak_C,ens_max_peak_C,ens_peak_spread_C,gain_vs_ens_max_C,gain_over_spread
+pnw_jun2021,maritime coastal,/home/ieadoboe/scratch/heatwave/data/opt_runs/pnw_jun2021_lr1em09_it75_lam20_b10_d11,ok,75,31.21,34.16,1.59,5.56,5.36
+stjohns_aug2025,maritime coastal,/home/ieadoboe/scratch/heatwave/data/opt_runs/stjohns_aug2025_lr5em09_it75_lam100_b10_d9,ok,75,20.19,21.65,0.65,3.83,8.09
+moscow_jul2010,continental interior,/home/ieadoboe/scratch/heatwave/data/opt_runs/moscow_jul2010_lr5em09_it75_lam100_b10_d9,ok,75,32.74,35.49,1.04,3.25,5.79
+japan_jul2018,subtropical humid,/home/ieadoboe/scratch/heatwave/data/opt_runs/japan_jul2018_lr5em09_it75_lam100_b10_d7,ok,75,28.05,28.52,0.2,1.8,11.28
+sahel_apr2024,arid,/home/ieadoboe/scratch/heatwave/data/opt_runs/sahel_apr2024_lr5em09_it75_lam100_b10_d8,skipped (existing ensemble),75,37.59,39.14,0.61,2.56,6.71
+brazil_nov2023,tropical,/home/ieadoboe/scratch/heatwave/data/opt_runs/brazil_nov2023_lr5em09_it75_lam100_b10_d11,ok,75,27.9,29.0,0.55,4.02,9.25
+siberia_jun2020,polar/high-latitude,/home/ieadoboe/scratch/heatwave/data/opt_runs/siberia_jun2020_lr5em09_it75_lam100_b10_d11,ok,75,26.38,28.94,1.56,0.7,2.1
