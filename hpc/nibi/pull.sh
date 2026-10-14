@@ -21,6 +21,10 @@ REMOTE_HOST="${REMOTE_HOST:-nibi}"
 # SRC can be set directly to a local path, which is how this is tested; it
 # bypasses the remote entirely, so it also bypasses the check below.
 REMOTE_ACCOUNT="${REMOTE_ACCOUNT:-}"
+# Your username on the cluster, not on this laptop: the two differ. Read it
+# from the ssh config for the host alias (`ssh -G` resolves without
+# connecting), and fall back to the local login only when that is unset.
+REMOTE_USER="${REMOTE_USER:-$(ssh -G "$REMOTE_HOST" 2>/dev/null | awk '/^user /{print $2}')}"
 REMOTE_USER="${REMOTE_USER:-$USER}"
 if [ -z "${SRC:-}" ] && [ -z "${REMOTE_DIR:-}" ]; then
     if [ -z "$REMOTE_ACCOUNT" ]; then
@@ -60,7 +64,10 @@ rsync -a --prune-empty-dirs "${RUN_FILTERS[@]}" \
     "$SRC"/opt_runs/ "$REPO/data/opt_runs/"
 
 echo "=== figures ==="
-rsync -a "$SRC"/plots/ "$REPO/plots/" 2>/dev/null || echo "  (none)"
+# Figures live in per-experiment subdirectories (plots/atlas/, ...). Runs
+# from before that layout left flat PDFs at the remote root; skip them.
+rsync -a --exclude='/*.pdf' --exclude='/*.png' "$SRC"/plots/ "$REPO/plots/" \
+    2>/dev/null || echo "  (none)"
 
 if [ "$WITH_MEMBERS" = 1 ]; then
     echo "=== raw ensemble members ==="
