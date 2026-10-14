@@ -231,8 +231,13 @@ def main():
         return
 
     wd = Workdir(args.workdir)
-    parts = [candidates_for(y, wd) for y in args.years]
-    table = pd.concat([p for p in parts if len(p)], ignore_index=True)
+    parts = [p for p in (candidates_for(y, wd) for y in args.years) if len(p)]
+    if not parts:
+        sys.exit(f"no reference catalogues in {wd.catalogues} for the years "
+                 f"asked; run `hwcat robustness --workdir {wd.root}` in the "
+                 f"heatwave-catalogue repository, or point --workdir (or "
+                 f"HWCAT_WORKDIR) at its working folder")
+    table = pd.concat(parts, ignore_index=True)
     table.to_csv(out, index=False)
     print(f"-> {out}: {len(table)} events in {table.year.nunique()} summers, "
           f"{(table.robustness == 'holds').sum()} hold under every setting")

@@ -31,14 +31,16 @@ JAX_VERSION=0.10.2
 pip install --no-index \
     "jax==$JAX_VERSION" "jaxlib==$JAX_VERSION" \
     "jax_cuda12_plugin==$JAX_VERSION" "jax_cuda12_pjrt==$JAX_VERSION" \
-    numpy pandas xarray zarr matplotlib optax tqdm pyyaml
+    numpy pandas xarray zarr matplotlib optax tqdm pyyaml \
+    scipy netCDF4 dask
 
 # Pure Python, from PyPI.
 pip install neuralgcm dinosaur-dycore gcsfs fsspec
 
 # The Koppen zones come from the catalogue package, pinned to a tag. Pure
 # Python, so pip builds a py3-none-any wheel from GitHub as it does for
-# neuralgcm; its compiled dependencies are already in from the wheelhouse.
+# neuralgcm. Its compiled dependencies (numpy, scipy, netCDF4, ...) come from
+# the wheelhouse line above, since pip here discards manylinux wheels.
 pip install "hwcat @ git+https://github.com/ieadoboe/heatwave-catalogue@v0.1.0"
 
 pip install -e "$HEATWAVE_REPO"
