@@ -1,6 +1,6 @@
 """Differentiable IC optimization (the W&DL storyline method).
 
-Numerics are a faithful port of scripts/stjohns_optimize.py (which fixed the
+Numerics are a faithful port of archive/scripts/stjohns_optimize.py (which fixed the
 cloud-liquid regularization bug in Tim's NeuralGCM_example.py:208) with the
 hyperparameters passed as traced arguments, notebook-style, so sweeps reuse
 one compiled loss instead of re-jitting per hyperparameter set.

@@ -44,7 +44,7 @@ target_lon: 52.7126
 
 init:
   # ERA5 initial-condition zarr the run regrids onto the model grid. Build once:
-  #   python scripts/stjohns_optimize.py --config scripts/stjohns_config.yaml --build-ic
+  #   python archive/scripts/stjohns_optimize.py --config archive/scripts/stjohns_config.yaml --build-ic
   init_cond: "data/era5_ic_stjohns_2025-08-04.zarr"
   # Source + date used only when building the IC:
   era5_arco: "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3"

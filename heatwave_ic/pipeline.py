@@ -20,7 +20,7 @@ from heatwave_ic.optimize import encode_initial_state, optimize_ic, target_indic
 from heatwave_ic.config import unrooted
 from heatwave_ic.outputs import (make_run_dir, save_losses, save_state_fields,
                                  save_trajectory_nc)
-from heatwave_ic.zones import classify_event
+from hwcat.zones import classify_event
 
 
 def run_event(cfg: dict, model=None, *, skip_existing: bool = False,

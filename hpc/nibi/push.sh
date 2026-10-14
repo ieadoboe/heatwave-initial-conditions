@@ -7,10 +7,9 @@
 # The no-argument form assumes a `nibi` host alias in ~/.ssh/config; pass the
 # destination explicitly if you do not have one.
 #
-# Outputs stay on the cluster, so data/ and plots/ are not pushed. The one
-# exception is the Koppen classification grid, which is a static input the
-# pipeline reads from the checkout: without it every event fails at
-# classify_event before any optimization starts.
+# Outputs stay on the cluster, so data/ and plots/ are not pushed. The Koppen
+# grid that classify_event needs now ships inside the hwcat package, which
+# setup_env.sh installs, so nothing in data/ has to travel.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -26,9 +25,8 @@ rsync -a --stats \
     --exclude 'outputs/' \
     --exclude 'plots/' \
     --exclude 'papers/' \
-    --exclude 'tim_code/' \
+    --exclude 'reference/' --exclude 'archive/' \
     --include 'data/' \
-    --include 'data/koppen_*' \
     --exclude 'data/*' \
     "$REPO/" "$REMOTE"
 

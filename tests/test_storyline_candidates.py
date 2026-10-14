@@ -75,8 +75,25 @@ def test_config_round_trip():
     assert exported["window_covers_peak"], exported
 
 
+def test_empty_workdir_says_where_it_looked():
+    """No catalogues in the workdir: a message naming it, not a pandas error."""
+    import sys
+    with tempfile.TemporaryDirectory() as d:
+        argv = sys.argv
+        sys.argv = ["storyline_candidates.py", "--years", "2003", "--workdir", d]
+        try:
+            SC.main()
+        except SystemExit as e:
+            assert d in str(e.code), e.code
+        else:
+            raise AssertionError("expected SystemExit")
+        finally:
+            sys.argv = argv
+
+
 if __name__ == "__main__":
     test_storyline_setup()
     test_robustness()
     test_config_round_trip()
+    test_empty_workdir_says_where_it_looked()
     print("ok")
