@@ -3,6 +3,7 @@
     python scripts/download_era5_europe_daily.py --probe    # validate the request
     python scripts/download_era5_europe_daily.py            # baseline + target
     python scripts/download_era5_europe_daily.py --years 2026
+    python scripts/download_era5_europe_daily.py --months 04 10   # add months
 
 Uses the CDS `derived-era5-single-levels-daily-statistics` catalogue entry,
 which aggregates the hourly reanalysis to a daily statistic SERVER-SIDE and
@@ -35,7 +36,10 @@ AREA = [72, -25, 35, 45]
 
 BASELINE_YEARS = range(1991, 2021)   # WMO 1991-2020 normal
 TARGET_YEARS = [2026]
-MONTHS = ["05", "06", "07", "08", "09"]
+# April and October are buffer months: events are counted over May-September
+# but measured over the whole window, so one already under way on 1 May
+# or still running on 30 September is not cut short.
+MONTHS = ["04", "05", "06", "07", "08", "09", "10"]
 
 OUT_DIR = REPO / "data" / "era5_europe"
 
@@ -91,7 +95,33 @@ def year_path(out_dir: Path, year: int) -> Path:
     return out_dir / f"europe_tmax_{year}.nc"
 
 
-def download_batch(client, years, out_dir: Path) -> None:
+def has_months(path: Path, months) -> bool:
+    """True when the year file exists and already holds every month in `months`."""
+    if not path.exists():
+        return False
+    import xarray as xr
+    with xr.open_dataset(path) as ds:
+        time_name = next(c for c in ("valid_time", "time") if c in ds.dims)
+        have = set(ds[time_name].dt.month.values.tolist())
+    return {int(m) for m in months} <= have
+
+
+def save_year(part, path: Path, time_name: str) -> None:
+    """Write one year, merging into an existing file when there is one.
+
+    Merging is what lets --months add April and October to files that already
+    hold May-September, instead of downloading the whole season again. Days
+    in the new download replace the same days in the old file."""
+    import xarray as xr
+    if path.exists():
+        with xr.open_dataset(path) as old:
+            old = old.load()
+        old = old.sel({time_name: ~old[time_name].isin(part[time_name].values)})
+        part = xr.concat([old, part], dim=time_name).sortby(time_name)
+    part.to_netcdf(path)
+
+
+def download_batch(client, years, out_dir: Path, months=None) -> None:
     """Fetch several years in ONE request, then split into per-year files.
 
     Batching matters because the CDS queue wait dominates: a request observed
@@ -104,7 +134,7 @@ def download_batch(client, years, out_dir: Path) -> None:
     print(f"  {label}: requesting {len(years)} year(s) in one request ...",
           flush=True)
     tmp = out_dir / f"_batch_{label}.nc"
-    client.retrieve(DATASET, request_for(years), str(tmp))
+    client.retrieve(DATASET, request_for(years, months), str(tmp))
 
     ds = xr.open_dataset(tmp)
     time_name = next(c for c in ("valid_time", "time") if c in ds.dims)
@@ -114,7 +144,7 @@ def download_batch(client, years, out_dir: Path) -> None:
             print(f"    {year}: WARNING nothing returned")
             continue
         out = year_path(out_dir, year)
-        part.to_netcdf(out)
+        save_year(part.load(), out, time_name)
         print(f"    {year}: {out.name} ({out.stat().st_size / 1e6:.0f} MB)",
               flush=True)
     ds.close()
@@ -128,6 +158,10 @@ def main():
     parser.add_argument("--probe", action="store_true",
                         help="Fetch a single day to validate the request, "
                              "then stop")
+    parser.add_argument("--months", nargs="*", default=None,
+                        help="Fetch only these months (e.g. 04 10) and merge "
+                             "them into each year's existing file. Years "
+                             "that already hold them are skipped.")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--batch-years", type=int, default=5,
                         help="Years per CDS request (default 5). The queue "
@@ -156,8 +190,10 @@ def main():
         return
 
     years = args.years if args.years else list(BASELINE_YEARS) + TARGET_YEARS
+    months = [f"{int(m):02d}" for m in args.months] if args.months else None
     if not args.overwrite:
-        have = [y for y in years if year_path(out_dir, y).exists()]
+        have = [y for y in years
+                if has_months(year_path(out_dir, y), months or MONTHS)]
         years = [y for y in years if y not in have]
         if have:
             print(f"Already downloaded: {len(have)} year(s) "
@@ -170,7 +206,7 @@ def main():
     print(f"Downloading {len(years)} year(s) of daily-max 2m temperature, "
           f"up to {batch} per request")
     print(f"  domain {AREA[0]}N {AREA[3]}E to {AREA[2]}N {AREA[1]}E, "
-          f"months {'-'.join(MONTHS)}")
+          f"months {'-'.join(months or MONTHS)}")
     print(f"  -> {out_dir}\n", flush=True)
 
     # CDS caps a request by "cost", and the cap sits somewhere below five
@@ -181,7 +217,7 @@ def main():
         while i < len(run):
             chunk = run[i:i + batch]
             try:
-                download_batch(client, chunk, out_dir)
+                download_batch(client, chunk, out_dir, months)
             except Exception as exc:
                 if not _is_too_large(exc) or len(chunk) == 1:
                     raise

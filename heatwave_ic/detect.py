@@ -20,7 +20,7 @@ unrelated blobs together. Each day is therefore filtered for spatial extent
 first, which is what `min_area_km2` controls.
 
 Everything here is plain numpy and scipy on in-memory arrays. Europe at 0.25
-degrees for one season is about 150 x 280 x 153, which is small.
+degrees for April to October is about 150 x 280 x 214, which is small.
 """
 
 from dataclasses import dataclass
@@ -302,6 +302,10 @@ def event_table(det: Detection, target: xr.DataArray,
             "mean_anom_C": round(float(np.nanmean(anom_in)), 2),
             "severity_C_km2_day": round(severity),
             "n_cell_days": int(sub_labels.sum()),
+            # True when the event touches the first or last day of the data,
+            # so its real start or end lies outside what was downloaded.
+            "censored_start": sl[0].start == 0,
+            "censored_end": sl[0].stop == len(det.time),
         })
 
     df = pd.DataFrame(rows)
@@ -310,3 +314,25 @@ def event_table(det: Detection, target: xr.DataArray,
     df = df.sort_values("severity_C_km2_day", ascending=False, ignore_index=True)
     df.insert(0, "rank", np.arange(1, len(df) + 1))
     return df
+
+
+def in_season(events: pd.DataFrame, first: str = "05-01",
+              last: str = "09-30") -> pd.DataFrame:
+    """Keep events with at least one day between `first` and `last` (MM-DD),
+    then renumber the ranks.
+
+    The data reaches past the season on both sides so that an event already
+    under way on 1 May, or still running on 30 September, is measured whole:
+    its start, end, duration and severity all include the days outside the
+    season. Only the decision whether it belongs in the catalogue uses the
+    season."""
+    if events.empty:
+        return events
+    start = pd.to_datetime(events["start"])
+    end = pd.to_datetime(events["end"])
+    year = start.dt.year.astype(str)
+    lo = pd.to_datetime(year + "-" + first)
+    hi = pd.to_datetime(year + "-" + last)
+    kept = events[(start <= hi) & (end >= lo)].reset_index(drop=True)
+    kept["rank"] = np.arange(1, len(kept) + 1)
+    return kept

@@ -103,6 +103,32 @@ assert len(ev2) == 1, f"a drifting blob split into {len(ev2)} events"
 assert ev2.iloc[0].duration_days == 6, ev2.iloc[0].duration_days
 print("OK: a blob drifting 40 cells east over 6 days stayed one event.")
 
+# --- season filter and censoring flags -------------------------------------
+# Treat June-August as the season, so May and September play the buffer
+# months. Blobs are far apart in space so they stay separate events.
+edge = np.zeros((NDAY, LAT.size, LON.size), dtype="float32")
+edge[0:5, 2:20, 0:40] += 12.0        # 1-5 May: touches the first day
+edge[10:15, 60:78, 0:40] += 12.0     # 11-15 May: entirely before the season
+edge[28:34, 2:20, 80:118] += 12.0    # 29 May-3 Jun: straddles the season start
+edge[148:153, 60:78, 80:118] += 12.0 # 26-30 Sep: touches the last day
+tgt3 = make_year(2026, extra=edge)
+ev3 = D.event_table(D.detect(tgt3, thr, min_days=3, min_area_km2=50_000.0),
+                    tgt3, min_area_km2=50_000.0)
+assert len(ev3) == 4, f"expected 4 planted events, got {len(ev3)}"
+by_start = ev3.set_index(ev3.start.astype(str))
+assert by_start.loc["2026-05-01"].censored_start
+assert not by_start.loc["2026-05-01"].censored_end
+assert by_start.loc["2026-09-26"].censored_end
+assert not by_start.loc["2026-05-29"].censored_start
+
+kept = D.in_season(ev3, "06-01", "08-31")
+assert sorted(kept.start.astype(str)) == ["2026-05-29"], kept.start.tolist()
+k = kept.iloc[0]
+assert k.duration_days == 6 and k["rank"] == 1, (k.duration_days, k["rank"])
+print("OK: an event straddling the season start is kept whole (starts "
+      "29 May, 6 days),\n    events outside the season are dropped, and "
+      "edge events are flagged censored.")
+
 # --- area weighting ---------------------------------------------------------
 area = D.cell_area_km2(np.array([0.0, 60.0]), np.arange(0, 1, 0.25))
 ratio = area[1, 0] / area[0, 0]

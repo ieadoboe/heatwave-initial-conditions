@@ -2,6 +2,7 @@
 
     python scripts/detect_heatwaves_europe.py
     python scripts/detect_heatwaves_europe.py --year 2025 --min-area 100000
+    python scripts/detect_heatwaves_europe.py --percentile 0.95 --tag _p95
 
 Needs the downloads from scripts/download_era5_europe_daily.py. Applies
 Perkins & Alexander CTX90pct against a 1991-2020 calendar-day baseline, labels
@@ -87,10 +88,20 @@ def main():
                              "labelling, so scattered exceedances cannot "
                              "bridge separate events, and again to each "
                              "event's peak extent.")
+    parser.add_argument("--season", nargs=2, default=["05-01", "09-30"],
+                        metavar=("FIRST", "LAST"),
+                        help="Count events with a day in this MM-DD window "
+                             "(default 05-01 09-30). Days outside it, in the "
+                             "April and October buffer, still count toward "
+                             "an event's start, end and severity.")
     parser.add_argument("--data-dir", default=str(ERA5_DIR))
     parser.add_argument("--rebuild-threshold", action="store_true",
                         help="Recompute the percentile climatology even if the "
                              "cached one exists")
+    parser.add_argument("--tag", default="",
+                        help="Suffix for the output CSV and map, so runs with "
+                             "different settings do not overwrite each other "
+                             "(scripts/catalogue_sensitivity.py sets it)")
     args = parser.parse_args()
 
     data_dir = Path(args.data_dir)
@@ -107,8 +118,13 @@ def main():
           f"{target.sizes['latitude']}x{target.sizes['longitude']} grid, "
           f"{float(target.min()):.1f} to {float(target.max()):.1f} C")
 
-    thresh_path = DATA / (f"heatwave_threshold_europe_"
-                          f"{first}_{last}_p{int(args.percentile * 100)}.nc")
+    # The month span is part of the cache key: the +/-7 day window makes the
+    # thresholds near either end depend on which months the baseline holds,
+    # so a May-September cache must never be reused for April-October data.
+    months = target["time"].dt.month
+    span = f"m{int(months.min()):02d}-{int(months.max()):02d}"
+    thresh_path = DATA / (f"heatwave_threshold_europe_{first}_{last}_"
+                          f"p{int(args.percentile * 100)}_{span}.nc")
     if thresh_path.exists() and not args.rebuild_threshold:
         print(f"\nThreshold: reusing {thresh_path.name}")
         threshold = xr.open_dataarray(thresh_path).load()
@@ -141,6 +157,7 @@ def main():
     print(f"  {det.n_events} connected blobs before the area filter")
 
     events = D.event_table(det, target, min_area_km2=args.min_area)
+    events = D.in_season(events, *args.season)
     if events.empty:
         sys.exit(f"\nNo events above {args.min_area:,.0f} km2. "
                  f"Lower --min-area to see smaller ones.")
@@ -155,21 +172,21 @@ def main():
                       for k in events.koppen]
 
     DATA.mkdir(parents=True, exist_ok=True)
-    out_csv = DATA / f"heatwave_events_europe_{args.year}.csv"
+    out_csv = DATA / f"heatwave_events_europe_{args.year}{args.tag}.csv"
     events.to_csv(out_csv, index=False)
     print(f"\n{len(events)} events above {args.min_area:,.0f} km2 "
           f"-> {out_csv}\n")
     cols = ["rank", "start", "peak", "end", "duration_days", "peak_area_km2",
             "centroid_lat", "centroid_lon", "peak_tmax_C", "max_anom_C",
-            "koppen", "severity_C_km2_day"]
+            "koppen", "severity_C_km2_day", "censored_start", "censored_end"]
     print(events[cols].head(15).to_string(index=False))
 
     hw_days = (det.labels > 0).sum(axis=0)
     plots = _submodule("plots")
     fig, _ = plots.plot_europe_heatwaves(
         hw_days, det.lat, det.lon, events=events, year=args.year,
-        save=PLOTS / f"heatwave_europe_{args.year}.pdf")
-    fig.savefig(PLOTS / f"heatwave_europe_{args.year}.png", dpi=150,
+        save=PLOTS / f"heatwave_europe_{args.year}{args.tag}.pdf")
+    fig.savefig(PLOTS / f"heatwave_europe_{args.year}{args.tag}.png", dpi=150,
                 bbox_inches="tight")
 
 
