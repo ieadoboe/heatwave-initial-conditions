@@ -56,6 +56,12 @@ data/heatwave_threshold_*.nc
 data/opt_runs/
 data/ensembles/
 
+# All-summers sweep: about 650 catalogues and their footprints, rebuilt by
+# scripts/catalogue_stability_allyears.py. The summary tables in data/
+# (catalogue_stability_allyears.csv, storyline_candidates_1991_2026.csv)
+# carry the results.
+data/allyears/
+
 # Streamed IC stores (built by scripts/build_ics.py, tens of GB).
 data/era5_ic_*.zarr/
 
