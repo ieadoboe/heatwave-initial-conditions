@@ -126,7 +126,11 @@ def calendar_day_percentile(baseline: xr.DataArray, q: float = 0.90,
         delta = np.abs(doy_values - d)
         delta = np.minimum(delta, 366 - delta)
         sel = values[delta <= window]
-        out[i] = np.nanquantile(sel, q, axis=0)
+        # np.quantile is about 5x faster than nanquantile and identical when
+        # nothing is missing, which is the ERA5 case; keep nanquantile for
+        # data with gaps.
+        quantile = np.nanquantile if np.isnan(sel).any() else np.quantile
+        out[i] = quantile(sel, q, axis=0)
 
     return xr.DataArray(
         out,
