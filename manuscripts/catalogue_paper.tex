@@ -1,0 +1,453 @@
+%% Paper 1: sensitivity of a gridded European heat-wave catalogue to its
+%% detection thresholds.
+%%
+%% Needs the AMS LaTeX package version 6. Two files are NOT in this repository
+%% and have to be downloaded from the AMS LaTeX submissions page, which refuses
+%% automated requests, then placed beside this file:
+%%
+%%     ametsocV6.cls    the document class
+%%     ametsocV6.bst    the bibliography style
+%%
+%% https://www.ametsoc.org/ams/publications/author-information/latex-author-info/
+%%
+%% Editorial Manager builds the PDF from the source, so do not upload a PDF of
+%% your own. Figure files it receives must carry flat names with no directory
+%% path, no underscores and no periods before the extension, which is why the
+%% figure macros below expect fig1.pdf and not plots/detection/europe_....pdf.
+%%
+%% Compile: pdflatex, bibtex, pdflatex, pdflatex.
+
+%% PREVIEW: swap back to ametsocV6 once the AMS files are here.
+\documentclass{amsdraft}
+
+\usepackage{amsmath,amsfonts,amssymb,bm}
+\usepackage{mathptmx}
+\usepackage{newtxtext}
+\usepackage{newtxmath}
+\usepackage{graphicx}
+
+\title{TITLE DEFERRED: written last, from the finished results}
+
+%% AMS designates ONE corresponding author on the title page. The
+%% corresponding author in Editorial Manager can be a different person.
+\authors{Isaac Adoboe\correspondingauthor{Isaac Adoboe, ieadoboe@mun.ca}
+and Elsa Cardoso-Bihlo}
+
+\affiliation{Memorial University of Newfoundland, St. John's,
+Newfoundland and Labrador, Canada}
+
+\abstract{ABSTRACT DEFERRED: written last, once the results and conclusions
+are settled.}
+
+\begin{document}
+
+\maketitle
+
+%% Optional for a journal article, required for BAMS, at most 120 words.
+% \statement
+% Significance statement here.
+
+\section{Introduction}
+\label{sec:intro}
+
+%% DRAFT, written before the results. Revisit the last paragraph once
+%% section 3 exists, so the question it poses matches what was answered.
+
+European summer heat waves are among the most damaging weather extremes the
+continent experiences. The summer of 2003 was statistically extremely
+unlikely even when the observed warming is taken into account
+\citep{Schar2004}, and more than 70\,000 additional deaths occurred during it
+\citep{Robine2008}; the summer of 2010, centred on eastern Europe and Russia,
+then exceeded 2003 in both amplitude and spatial extent
+\citep{Barriopedro2011}; and the summer of 2022 was associated with more than
+60\,000 heat-related deaths \citep{Ballester2023}. Over the past four decades,
+heat-wave trends over Europe have been three to four times faster than over
+the rest of the northern midlatitudes \citep{Rousi2022}.
+
+Deciding which of these events were the most severe is usually the job of a
+catalogue. Ranked lists of the most severe European heat waves
+\citep{Russo2015,Becker2022} and classifications of their spatial patterns
+\citep{Stefanon2012} determine which events are studied in depth.
+Extreme-event attribution starts from the choice of an event and its
+definition \citep{Philip2020}, and physical storylines of extreme heat are
+constructed around a chosen case \citep{WhittakerDiLuca2026}. In each of these
+uses the catalogue is an input rather than a result: once an event has been
+selected as the most severe of its season, the work that follows inherits
+that selection without revisiting it.
+
+There is, however, no single definition of a heat wave
+\citep{PerkinsAlexander2013,Perkins2015}. Indices developed for station
+records count hot days at a point \citep{Zhang2011}, whereas a gridded
+catalogue must also decide how large a hot region has to be before it
+constitutes an event \citep{Stefanon2012,Lhotka2015}. Every such detector has
+parameters with no physically correct value, among them the percentile that
+defines a hot day and the minimum area that defines a coherent event.
+Comparisons between definitions show that the frequency, trends and
+geographic patterns of heat waves depend strongly on the index adopted
+\citep{Smith2013}, and that the ranking of historical European events shifts
+between indices \citep{Becker2022}. Within a single event-based detector,
+the area threshold, connectivity and overlap criterion have been shown to
+alter heat-wave metrics and their trends \citep{Zhang2025}. Those studies
+concern aggregate statistics. Less attention has been paid to a narrower
+question that matters directly to anyone selecting cases: for a single
+detector, how much does the ranking of its individual events depend on its
+own free parameters? Choosing the top event of a catalogue implicitly assumes
+that the answer is very little.
+
+This paper tests that assumption. We construct a gridded CTX90pct catalogue
+of European heat waves from ERA5 for the 2026 season and for two contrasting
+seasons, 2003 and 2022, and repeat the detection for six combinations of
+percentile and minimum area. We then ask whether the most severe events of
+each season keep their rank across configurations and, where they do not,
+which step of the detector is responsible. Section~\ref{sec:methods} describes
+the data, the detector and the sensitivity experiment;
+section~\ref{sec:results} presents the catalogues and their response to the
+parameters; section~\ref{sec:discussion} considers what that response implies
+for case selection; and section~\ref{sec:conclusions} summarizes.
+
+\section{Data and methods}
+\label{sec:methods}
+
+\subsection{Reanalysis data and domain}
+\label{sec:data}
+
+We built the catalogue from daily maximum 2-m temperature in the ERA5
+reanalysis \citep{Hersbach2020}, retrieved from the Copernicus Climate Data
+Store as the derived daily-statistics product, which aggregates the hourly
+reanalysis to a daily maximum before subsetting in space. The domain spans
+35--72$^\circ$N and 25$^\circ$W--45$^\circ$E on the native 0.25$^\circ$ grid,
+which is 149 latitudes by 281 longitudes, and the calendar window runs from 1
+May to 30 September, giving 153 daily fields per season.
+
+Two further seasons, 2003 and 2022, were retrieved on the same grid over the
+same calendar window and processed with an identical configuration. They were
+chosen because their heat was organized differently from one another and from
+2026: the severity of 2003 is dominated by a single August event over France,
+whereas 2022 combines a sequence of western European events with a separate and
+longer-lived northeastern one. Testing the detector against seasons of
+different shape is what distinguishes a property of the method from a property
+of one summer.
+
+Thresholds were computed from a 1991--2020 baseline, the current World
+Meteorological Organization reference normal. Ocean cells were removed with a
+land mask taken from the 0.1$^\circ$ K\"oppen-Geiger map of \citet{Beck2023},
+in which class zero denotes ocean, sampled to the ERA5 grid by nearest
+neighbour. Deriving the mask from that map rather than from a separate
+land-sea product keeps the definition of land consistent with the climate
+classification applied to each event in section~\ref{sec:events}.
+
+\subsection{Heat-wave index}
+\label{sec:index}
+
+The index is CTX90pct as defined by \citet{PerkinsAlexander2013}, applied to
+every land cell independently. For each cell and each calendar day $d$ we
+computed the 90th percentile of daily maximum temperature over the baseline,
+pooling every baseline day whose day-of-year lies within $\pm$7 days of the
+target, with distances in day-of-year evaluated circularly. Each threshold
+$T_{90}(d,i,j)$ is therefore estimated from 30 years of 15 days, or 450
+samples, which is what makes a 90th percentile stable enough to threshold
+against, and it varies smoothly through the season and with position rather
+than imposing one fixed temperature across a domain that spans 37 degrees of
+latitude.
+
+A cell-day was marked hot when its daily maximum exceeded its own threshold,
+and we retained the exceedance anomaly
+$T_{\max}(t,i,j) - T_{90}(d_t,i,j)$ for every such cell-day. A hot cell-day was
+kept only if it belonged to a run of at least three consecutive hot days at
+that cell. We implemented the persistence requirement as a binary opening
+along the time axis with a structuring element of length three: the erosion
+removes every day belonging to a run shorter than three days, and the dilation
+restores in full the runs that survive.
+
+\subsection{Spatial coherence}
+\label{sec:coherence}
+
+Applying CTX90pct to a grid yields a boolean field of cell-days, which is not
+yet a catalogue of events. Turning it into one requires grouping cell-days
+that belong together, and the order of operations at this stage determines
+whether that grouping is meaningful.
+
+A 90th-percentile threshold places approximately one tenth of all cell-days
+above it by construction, so a persistent background of scattered exceedances
+covers the domain on any given day. Labelling that field directly allows
+isolated cells to act as bridges between unrelated patches and to chain them
+into a single object: in our own testing, a planted five-day event was
+recovered as a twelve-day one. We therefore filtered each day for spatial
+extent before any labelling in time. Within each day, hot cells were grouped
+into connected patches under eight-connectivity, the area of each patch was
+accumulated from the spherical cell areas
+\begin{equation}
+A(i) = R^2 \, \Delta\phi \, \Delta\lambda \, \cos\phi_i ,
+\label{eq:area}
+\end{equation}
+with $R = 6371.0088$ km and $\Delta\phi$, $\Delta\lambda$ the grid spacing in
+radians, and every patch whose area fell below a minimum $A_{\min}$ was
+discarded. Weighting by area rather than counting cells matters across this
+domain, where a cell at 72$^\circ$N covers about 38\% of the area of one at
+35$^\circ$N. The reference configuration uses $A_{\min} = 50\,000$ km$^2$,
+comparable to the area of Slovakia. Section~\ref{sec:sensitivity} treats that
+value, and the percentile, as free parameters rather than as settled choices.
+
+\subsection{Event identification and attributes}
+\label{sec:events}
+
+Events are the connected components of the surviving cell-days in the
+three-dimensional field of time, latitude and longitude, labelled with the
+\texttt{scipy.ndimage} implementation \citep{Virtanen2020}. The connectivity
+structure joins each cell to its eight spatial neighbours within the same day
+and to itself on the preceding and following day, but not to cells that are
+diagonal in space and time at once. Full 26-neighbour connectivity merges
+events that only brush past one another. A labelled component was retained as
+an event when its largest daily area reached $A_{\min}$, which removes the
+single-cell specks that otherwise accumulate along coastlines and over
+mountains.
+
+Each event carries a severity,
+\begin{equation}
+S = \sum_{(t,i,j)\,\in\,E}
+    \left[ T_{\max}(t,i,j) - T_{90}(d_t,i,j) \right] A(i) ,
+\label{eq:severity}
+\end{equation}
+the exceedance anomaly summed over every cell-day in the event $E$ and
+weighted by cell area, in units of $^\circ$C km$^2$ day. Severity is the
+quantity by which the catalogue is ranked throughout this paper. It is a
+gridded analogue of the heat wave magnitude index of \citet{Russo2014}: an
+event scores highly by being hot, large and long together, so that a brief
+record at a single location does not outrank a continental month.
+
+For each event we also recorded the start, end and duration; the peak and mean
+daily areas; the highest daily maximum temperature and the largest exceedance
+reached anywhere within it; and the peak day, defined as the day on which the
+mean exceedance across the event's cells was greatest, which is the day it was
+most intense rather than the day it was most widespread. The centroid is the
+area-weighted mean position of the cells belonging to the event on its peak
+day. Each event was finally assigned the modal K\"oppen-Geiger class of the
+land cells it covered at any point in its life, again from \citet{Beck2023}.
+
+\subsection{Sensitivity experiment}
+\label{sec:sensitivity}
+
+Two parameters of the detector have no correct value. The percentile sets how
+far above its own climatology a cell must be to count as hot, and the minimum
+area $A_{\min}$ sets how large a patch must be on a given day to count at all.
+Both are conventions, and published catalogues adopt different ones. We
+therefore repeated the entire detection for every combination of three
+minimum areas (25\,000, 50\,000 and 100\,000 km$^2$) and two percentiles (the
+90th and the 95th), giving six configurations, and applied all six to each of
+the three seasons. The configuration with $A_{\min} = 50\,000$ km$^2$ and the
+90th percentile is the reference, and the remaining five are compared against
+it.
+
+Comparison requires matching events between runs, because the labelling
+numbers components in scan order and no identifier survives a change of
+configuration. For each of the six most severe reference events we searched
+the target catalogue for a counterpart overlapping it in time by at least one
+day and lying within 10$^\circ$ of the reference centroid, with longitude
+differences scaled by the cosine of the reference latitude. Among the
+candidates we took the one sharing the most days with the reference, breaking
+ties by centroid distance. The quantity we report is the change in severity
+rank, defined as the reference rank minus the rank the matched event holds in
+the target catalogue, so that a positive value means the event moved up the
+ranking.
+
+One property of this procedure deserves note. It operates on dates and
+centroids rather than on the label fields themselves, so where a configuration
+splits a reference event into two, only the larger fragment is reported. The
+converse case, in which a configuration detects two reference events as a
+single object, appears as two reference events matching the same target event
+and is identified as such in section~\ref{sec:results}.
+
+Finally, 2003 lies inside the 1991--2020 baseline and so contributes to the
+thresholds against which it is tested, which raises its own thresholds and
+makes its catalogue conservative relative to those of 2022 and 2026. We
+retain the common baseline so that all three seasons are measured against one
+climatology, and return to the consequences in section~\ref{sec:discussion}.
+
+\section{Results}
+\label{sec:results}
+
+%% Numbers come from data/heatwave_events_europe_<year>.csv and
+%% data/catalogue_sensitivity_europe_<year>.csv (2026 rerun 2026-10-07 on
+%% the full season to 30 September). Figure sources, renamed flat for AMS:
+%%   fig1.pdf  plots/detection/europe_2026_fig1b_map_borders.pdf
+%%   fig2.pdf  plots/detection/europe_2026_fig2_timeline.pdf
+%%   fig3.pdf  plots/detection/europe_2026_fig6_footprints.pdf
+%%   fig4.pdf  plots/detection/europe_sensitivity_rank_changes.pdf
+
+\subsection{The 2026 catalogue}
+\label{sec:cat2026}
+
+The reference configuration detected 39 events between 1 May and 30
+September 2026 (Figs.~\ref{fig:map} and~\ref{fig:timeline}). Their
+severities span almost three orders of magnitude, from
+$1.5\times10^{5}$ to $1.2\times10^{8}$\,$^\circ$C\,km$^2$\,day, and the
+total is concentrated in a few of them. The most severe event alone
+accounts for 25\% of the summed severity of the season, the three most
+severe for 51\% and the six most severe for 75\%; seven events are enough
+to reach 80\%. The remaining 32 are short and small: the median duration
+across the catalogue is six days.
+
+The most severe event ran from 12 June to 3 July. It covered 2.98 million
+km$^2$ on its largest day, the greatest extent of any event in the season,
+spread from the Bay of Biscay to Poland (Fig.~\ref{fig:footprints}), and
+reached the largest exceedance in the catalogue, 14.1$^\circ$C above the
+local threshold. Its hottest cell, at 43.6$^\circ$C, lay in southwestern
+France, more than 1\,000 km west of its centroid in southern Germany. The
+second event, 27 July to 19 August, was centred on southern France,
+with its longest-lived cells over the Alps and northern Italy, and peaked
+at 1.96 million km$^2$; the third, 20 May to 2 June,
+covered Iberia, France and central Europe; and the fourth, 30 June to
+24 July, was confined largely to France, Iberia and western
+Italy. Figure~\ref{fig:footprints} shows that France lies
+inside the footprints of all four, and that the first and fourth overlap
+in time as well as in space: the fourth began on 30 June, four days before
+the first ended. The season's severity was therefore delivered as a
+sequence of waves over largely the same ground rather than as separate
+regional episodes, a property that section~\ref{sec:sens} shows to matter.
+
+Counted by events, the catalogue is dominated by the temperate oceanic
+class Cfb (12 of 39 events), but weighted by severity it is dominated by
+the humid continental class Dfb, whose eight events carry 50\% of the
+total against 35\% for Cfb. Absolute and relative heat also rank the
+events differently. The highest daily maximum in the catalogue,
+49.2$^\circ$C, was recorded in an event at the southeastern corner
+of the domain whose largest exceedance was only 4.1$^\circ$C, whereas the
+largest exceedance belongs to the central European event of June. Across
+all 39 events the Spearman rank correlation between peak temperature and
+peak exceedance is 0.11.
+
+\subsection{The 2003 and 2022 catalogues}
+\label{sec:cat_other}
+
+The same configuration detected 41 events in 2003 and 42 in 2022, a count
+close to the 39 of 2026. Severity is similarly concentrated: the three
+most severe events hold 55\% of the season total in 2003 and 62\% in
+2022. The seasons differ in where that severity sat. In 2003 the most
+severe event was the August heat wave over France, 29 July to 15 August,
+which accounts for 23\% of the season and reached 46.9$^\circ$C. The
+second, centred on the Pannonian basin, begins on 1 May, the first day of
+the analysis window, and is therefore truncated. In 2022 the two most
+severe events were both northeastern. The first, centred on northwestern
+Russia, persisted for 39 days from 29 July to 5 September and holds 31\%
+of the season total; the second, 21 June to 11 July, was centred on the
+Baltic. The western European heat waves of that summer rank third and
+fourth, with peak temperatures of 44.5 and 43.7$^\circ$C; the third
+reached the largest exceedance of the season, 15.0$^\circ$C. In neither
+season do the leading events share a region in consecutive weeks as the
+2026 events do.
+
+\subsection{Sensitivity to percentile and minimum area}
+\label{sec:sens}
+
+The number of events responds strongly to both parameters
+(Fig.~\ref{fig:sensitivity}). At the 90th percentile, halving $A_{\min}$
+from 50\,000 to 25\,000 km$^2$ raised the count by 61\% in 2003, 74\% in
+2022 and 72\% in 2026, and doubling it to 100\,000 km$^2$ removed between
+24\% and 41\%. Raising the percentile to the 95th removed further events
+at every area, and cut the severity of each season's leading event to
+between a third and three fifths of its reference value, which is
+expected because both the set of hot cell-days and the
+exceedance of each one shrink. None of this is a defect in itself: a
+catalogue ranked by severity is unaffected by small events entering or
+leaving it, provided the leading events keep their order.
+
+Every one of the six leading reference events of every season had a
+counterpart in all six configurations, so no leading event disappeared.
+Their order is a different matter. In 2003 and 2022 the three most severe
+events held their ranks in all six configurations, and nothing moved at
+all at the 90th percentile. All the reordering in those two seasons
+occurred at the 95th percentile and below the third rank. In 2003 the
+June event fell from fourth to sixth, and the two Fennoscandian events of July
+each rose one place. In 2022 the late-May event over Anatolia fell from sixth to
+ninth, or to tenth at 100\,000 km$^2$. These shifts are unchanged by the
+minimum area, which shows they come from the percentile alone: the events
+concerned were modest in exceedance and lost a larger share of their
+severity than their neighbours when the threshold rose.
+
+The 2026 ranking responded to both parameters and reached its second rank.
+At the 90th percentile and 25\,000 km$^2$ the June event and the event of
+30 June to 24 July were detected as a single object running 44 days from
+12 June to 25 July, whose severity,
+$1.67\times10^{8}$\,$^\circ$C\,km$^2$\,day, is the sum of the two. That
+object still ranks first, but the fourth reference event no longer exists
+as a separate event, and the fifth and sixth each rise one place into the
+gap. At the larger minimum areas the daily patches that connect the two
+waves during their four days of overlap fall below $A_{\min}$, and the
+two are separated again. At the 95th percentile, the second and third
+events exchanged ranks at 25\,000 and 50\,000 km$^2$: their severities
+differ there by less than 4\%. At 100\,000 km$^2$ the second event broke
+apart. Its largest fragment, 8 to 16 August, ranks only seventh, a fall of
+five places, and the reference ranks four to six rearrange around the
+vacancy. Because the matching reports only the larger fragment of a
+split event (section~\ref{sec:sensitivity}), the remaining fragments
+appear elsewhere in that catalogue as separate, smaller events.
+
+Across the three seasons the leading event was never displaced. Below it,
+2003 and 2022 kept their top three under every configuration, whereas 2026
+changed its second-ranked event under three of the five alternatives and
+changed the composition of its leading events under a fourth. The seasons
+whose severity was concentrated in events that were separated in space or
+time produced stable rankings; the season whose leading events followed
+one another over the same region did not.
+
+\begin{figure}[tbp]
+  \centering
+  \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{fig1}
+  \caption{Number of days each land cell spent inside any of the 39 events
+    detected in 2026 with the reference configuration (90th percentile,
+    $A_{\min} = 50\,000$ km$^2$). Numbers mark event centroids and give
+    the severity rank.}
+  \label{fig:map}
+\end{figure}
+
+\begin{figure}[tbp]
+  \centering
+  \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{fig2}
+  \caption{Duration of each 2026 event, ordered by start date and shaded by
+    severity. The tick inside each bar marks the peak day. Labels give the
+    severity rank and the modal K\"oppen-Geiger class.}
+  \label{fig:timeline}
+\end{figure}
+
+\begin{figure}[tbp]
+  \centering
+  \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{fig3}
+  \caption{Footprints of the eight most severe events of 2026: the number
+    of days each cell spent inside the event. The star marks the cell that
+    recorded the event's highest daily maximum temperature.}
+  \label{fig:footprints}
+\end{figure}
+
+\begin{figure}[tbp]
+  \centering
+  \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{fig4}
+  \caption{Change in severity rank of the six most severe reference events
+    of each season under each configuration, defined as reference rank
+    minus new rank, so that a positive value is a rise. Blank cells are
+    unchanged. Column heads give $A_{\min}$, and the numbers beneath each
+    panel give the total number of events detected. The blue outline joins
+    reference events that a configuration detects as a single event.}
+  \label{fig:sensitivity}
+\end{figure}
+
+\clearpage
+
+\section{Discussion}
+\label{sec:discussion}
+
+%% TODO. Written third.
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+%% TODO.
+
+\datastatement
+%% TODO. AMS requires this section. It needs the Zenodo DOI for the deposited
+%% catalogues, the ERA5 CDS citation, and the code repository.
+
+%% PREVIEW: swap back to ametsocV6 once the AMS files are here.
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
