@@ -4,8 +4,9 @@
     python scripts/storyline_candidates.py --make-config 2003_r01
 
 Reads the reference catalogue of every summer from the all-summers sweep
-(scripts/catalogue_stability_allyears.py: 50k km2, 90th percentile, 15-day
-window, leave-one-out baseline) and proposes a storyline set-up for each event:
+(`hwcat robustness` in the heatwave-catalogue repository: 50k km2, 90th
+percentile, 15-day window, leave-one-out baseline) and proposes a storyline
+set-up for each event:
 
   target point   where the event was most unusual on its peak day
   target window  the 5 days centred on the peak day
@@ -27,7 +28,6 @@ Outputs:
 """
 
 import argparse
-import importlib.util
 import os
 import subprocess
 import sys
@@ -42,16 +42,13 @@ ROOT = Path(os.environ.get("HEATWAVE_ROOT", REPO))
 DATA = ROOT / "data"
 
 
-def _script(name):
-    spec = importlib.util.spec_from_file_location(
-        name, REPO / "scripts" / f"{name}.py")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+from hwcat import robustness as AY  # noqa: E402
+from hwcat.match import footprint, match_by_overlap  # noqa: E402
+from hwcat.workdir import Workdir  # noqa: E402
 
-
-AY = _script("catalogue_stability_allyears")
-S = AY.S
+# The hwcat working folder the all-summers sweep wrote into.
+WORKDIR = Path(os.environ.get(
+    "HWCAT_WORKDIR", REPO.parent / "heatwave-catalogue" / "hwcat-data"))
 
 LEAD_DAYS = 6
 WINDOW_DAYS = 5
@@ -80,11 +77,11 @@ def robustness(ref: pd.DataFrame, ref_fp: pd.DataFrame,
     """Per reference event, across the other settings (each a run table and
     its footprint): how often it is found, keeps its rank, is merged with
     another reference event or split into pieces, and how far its dates
-    move. Matching is by shared cell-days (AY.match_by_overlap)."""
+    move. Matching is by shared cell-days (hwcat.match.match_by_overlap)."""
     n = len(ref)
     found, same_rank, merged, split, shift = (np.zeros(n, int) for _ in range(5))
     for run, run_fp in runs:
-        m = AY.match_by_overlap(ref, ref_fp, run, run_fp)
+        m = match_by_overlap(ref, ref_fp, run, run_fp)
         for i, (j, is_merged, pieces) in enumerate(
                 zip(m.run_index, m.merged, m.n_pieces)):
             if j < 0:
@@ -108,8 +105,8 @@ def robustness(ref: pd.DataFrame, ref_fp: pd.DataFrame,
     })
 
 
-def load(year: int, tag: str) -> pd.DataFrame | None:
-    path = AY.OUT / f"heatwave_events_europe_{year}{tag}.csv"
+def load(year: int, tag: str, wd: Workdir) -> pd.DataFrame | None:
+    path = wd.catalogue_file(year, tag)
     if not path.exists():
         return None
     run = pd.read_csv(path)
@@ -118,45 +115,44 @@ def load(year: int, tag: str) -> pd.DataFrame | None:
     return run
 
 
-def refresh_reference(year: int) -> None:
+def refresh_reference(year: int, wd: Workdir) -> None:
     """Rerun a reference catalogue made before the detector recorded each
     event's peak-day target point."""
     area, pct, window = AY.REFERENCE
     subprocess.run(
-        [sys.executable, str(REPO / "scripts" / "detect_heatwaves_europe.py"),
-         "--year", str(year), "--min-area", str(area),
-         "--percentile", str(pct), "--window", str(window),
-         "--leave-one-out", "--no-plot", "--save-labels",
-         "--out-dir", str(AY.OUT),
+        [sys.executable, "-m", "hwcat", "detect", "--year", str(year),
+         "--min-area", str(area), "--percentile", str(pct),
+         "--window", str(window), "--leave-one-out", "--no-plot",
+         "--save-labels", "--workdir", str(wd.root),
          "--tag", AY.tag_for(area, pct, window)],
-        check=True, env=os.environ, stdout=subprocess.DEVNULL)
-    for f in DATA.glob(f"heatwave_threshold_europe_*_loo{year}_*.nc"):
+        check=True, stdout=subprocess.DEVNULL)
+    for f in wd.thresholds.glob(f"heatwave_threshold_{wd.region}_*_loo{year}_*.nc"):
         f.unlink()
 
 
-def candidates_for(year: int) -> pd.DataFrame:
+def candidates_for(year: int, wd: Workdir) -> pd.DataFrame:
     ref_tag = AY.tag_for(*AY.REFERENCE)
-    ref = load(year, ref_tag)
+    ref = load(year, ref_tag, wd)
     if ref is None:
         return pd.DataFrame()
-    ref_csv = AY.OUT / f"heatwave_events_europe_{year}{ref_tag}.csv"
+    ref_labels = wd.labels_file(year, ref_tag)
     if len(ref) and ("peak_day_anom_lat" not in ref.columns
-                     or not AY.labels_for(ref_csv).exists()):
+                     or not ref_labels.exists()):
         print(f"{year}: refreshing the reference catalogue")
-        refresh_reference(year)
-        ref = load(year, ref_tag)
+        refresh_reference(year, wd)
+        ref = load(year, ref_tag, wd)
     if not len(ref):
         return pd.DataFrame()
 
     def with_fp(tag):
-        run = load(year, tag)
-        lab = AY.labels_for(AY.OUT / f"heatwave_events_europe_{year}{tag}.csv")
-        return (run, AY.footprint(lab)) if run is not None and lab.exists() else None
+        run = load(year, tag, wd)
+        lab = wd.labels_file(year, tag)
+        return (run, footprint(lab)) if run is not None and lab.exists() else None
 
     others = [with_fp(AY.tag_for(a, p, w))
               for a, p, w in AY.product(AY.AREAS_KM2, AY.PERCENTILES, AY.WINDOWS)
               if (a, p, w) != AY.REFERENCE]
-    rob = robustness(ref, AY.footprint(AY.labels_for(ref_csv)),
+    rob = robustness(ref, footprint(ref_labels),
                      [o for o in others if o is not None])
 
     setup = pd.DataFrame([storyline_setup(p) for p in ref.peak])
@@ -216,6 +212,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--years", nargs="*", type=int,
                         default=list(range(1991, 2027)))
+    parser.add_argument("--workdir", type=Path, default=WORKDIR,
+                        help="hwcat working folder holding the all-summers "
+                             "catalogues (default $HWCAT_WORKDIR, else "
+                             "../heatwave-catalogue/hwcat-data)")
     parser.add_argument("--make-config", metavar="EVENT_ID",
                         help="Write configs/europe_<EVENT_ID>.yaml from the "
                              "existing table, e.g. 2003_r01")
@@ -230,7 +230,8 @@ def main():
         print(f"-> {make_config(hit.iloc[0])}  (review before running)")
         return
 
-    parts = [candidates_for(y) for y in args.years]
+    wd = Workdir(args.workdir)
+    parts = [candidates_for(y, wd) for y in args.years]
     table = pd.concat([p for p in parts if len(p)], ignore_index=True)
     table.to_csv(out, index=False)
     print(f"-> {out}: {len(table)} events in {table.year.nunique()} summers, "

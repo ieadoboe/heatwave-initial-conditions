@@ -36,6 +36,11 @@ pip install --no-index \
 # Pure Python, from PyPI.
 pip install neuralgcm dinosaur-dycore gcsfs fsspec
 
+# The Koppen zones come from the catalogue package, pinned to a tag. Pure
+# Python, so pip builds a py3-none-any wheel from GitHub as it does for
+# neuralgcm; its compiled dependencies are already in from the wheelhouse.
+pip install "hwcat @ git+https://github.com/ieadoboe/heatwave-catalogue@v0.1.0"
+
 pip install -e "$HEATWAVE_REPO"
 pip freeze --local > "$HEATWAVE_REPO/hpc/nibi/requirements-nibi.txt"
 

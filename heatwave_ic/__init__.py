@@ -52,7 +52,7 @@ from heatwave_ic.outputs import (
     save_state_fields,
     save_trajectory_nc,
 )
-from heatwave_ic.zones import (
+from hwcat.zones import (
     GROUP_NAMES,
     classify_event,
     koppen_class,

@@ -19,6 +19,7 @@ dependencies = [
     "optax",
     "gcsfs",
     "neuralgcm",
+    "hwcat @ git+https://github.com/ieadoboe/heatwave-catalogue@v0.1.0",
 ]
 
 [tool.setuptools]
