@@ -23,7 +23,6 @@ env/
 
 # Personal / local-only
 TODO.md
-CLAUDE.md
 
 # Generated forecast outputs (large .nc, plots) — regenerate from scripts/
 outputs/
