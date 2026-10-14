@@ -87,3 +87,7 @@ papers/sensitivity_sources/*
 *.toc
 manuscripts/*.log
 manuscripts/*.pdf
+
+# Downloaded inputs: keep on disk, not in the repository.
+data/_era5_extend/
+data/era5_*_stjohns.nc
