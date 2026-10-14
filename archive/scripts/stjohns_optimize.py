@@ -4,7 +4,7 @@ Initial-condition optimization for the Aug 2025 St. John's, NL heat wave.
 Adapted from Tim Whittaker's NeuralGCM_example.py (ExtremeStorylines, Zenodo
 10.5281/zenodo.15649394) — the optimizer behind Whittaker & Di Luca (2026).
 This is a faithful copy with the corrections/changes below; Tim's archived code
-in tim_code/ is intentionally left untouched (the line-208 bug still lives there
+in reference/tim_code/ is intentionally left untouched (the line-208 bug still lives there
 — worth flagging to Tim).
 
   1. BUG FIX — reg_term for cloud LIQUID now uses

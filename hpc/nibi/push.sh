@@ -25,7 +25,7 @@ rsync -a --stats \
     --exclude 'outputs/' \
     --exclude 'plots/' \
     --exclude 'papers/' \
-    --exclude 'tim_code/' \
+    --exclude 'reference/' --exclude 'archive/' \
     --include 'data/' \
     --exclude 'data/*' \
     "$REPO/" "$REMOTE"
