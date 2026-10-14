@@ -19,11 +19,11 @@ event:
   end: 2021-07-01
 
 run:
-  init_date: 2021-06-21    # W&DL Table 1, EXP75 row. With evol_days 11 the
-                           # unroll ends 2021-07-02, a day past event.end, so
-                           # the 5-day target window is Jun 27 to Jul 2. Was
-                           # 2021-06-20 (window Jun 26 to Jul 1); that extra
-                           # day of lead is a prime suspect for the +8.8 C run.
+  init_date: 2021-06-21    # W&DL Table 1, EXP75 row. The 264 hourly steps
+                           # run Jun 21 00:00 to Jul 1 23:00, so the 5-day
+                           # target window is Jun 27 to Jul 1: the event end.
+                           # Was 2021-06-20, whose window (Jun 26 to Jun 30)
+                           # missed Jul 1 and added a day of lead.
   evol_days: 11            # Tim's config_example.yaml
   rng_seed: 42
   save_every_iters: 25
