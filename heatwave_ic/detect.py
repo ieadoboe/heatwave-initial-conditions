@@ -288,6 +288,13 @@ def event_table(det: Detection, target: xr.DataArray,
         centroid_lon = float((w.sum(axis=0) * lon_sub).sum() / total_w)
 
         hottest = np.unravel_index(np.nanargmax(tmax_in), tmax_in.shape)
+        # Where the event was most unusual on its peak day: the default
+        # storyline target. The centroid can fall in the sea for a coastal
+        # event, and the hottest cell can sit far from the core.
+        # ponytail: one cell, so a lone outlier could win; smooth the peak-day
+        # anomaly first if targets land on isolated cells.
+        most_unusual = np.unravel_index(np.nanargmax(anom_in[peak_i]),
+                                        anom_in[peak_i].shape)
 
         rows.append({
             "event_id": eid,
@@ -303,6 +310,8 @@ def event_table(det: Detection, target: xr.DataArray,
             "peak_tmax_lat": round(float(lat_sub[hottest[1]]), 2),
             "peak_tmax_lon": round(float(lon_sub[hottest[2]]), 2),
             "max_anom_C": round(float(np.nanmax(anom_in)), 2),
+            "peak_day_anom_lat": round(float(lat_sub[most_unusual[0]]), 2),
+            "peak_day_anom_lon": round(float(lon_sub[most_unusual[1]]), 2),
             "mean_anom_C": round(float(np.nanmean(anom_in)), 2),
             "severity_C_km2_day": round(severity),
             "n_cell_days": int(sub_labels.sum()),
