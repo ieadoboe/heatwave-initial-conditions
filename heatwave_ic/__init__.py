@@ -1,6 +1,6 @@
 """heatwave_ic — reusable pipeline for differentiable heat-wave IC optimization.
 
-Event-agnostic refactor of scripts/stjohns_optimize.py +
+Event-agnostic refactor of archive/scripts/stjohns_optimize.py +
 notebooks/heatwave_stjohns_hyperparam_tuning.ipynb (which are themselves
 adapted from Tim Whittaker's ExtremeStorylines / Whittaker & Di Luca 2026).
 An "event" (St. John's Aug 2025, PNW Jun 2021, ...) is a YAML file in

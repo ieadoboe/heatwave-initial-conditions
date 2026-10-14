@@ -12,7 +12,7 @@ SKIPS when the merged file exists, so it cannot append. This script does:
      concat the new months onto it (dedup + sort by valid_time);
   3. back up the original merged file once (→ .bak) and write the extended file.
 
-The clean valid_time layout is still read correctly by identify_heatwaves.py's
+The clean valid_time layout is still read correctly by archive/scripts/identify_heatwaves.py's
 load_available (it collapses any extra axis on load).
 
 ERA5-Land daily statistics lag real time by ~2–3 months, so the most recent

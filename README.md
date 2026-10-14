@@ -92,7 +92,7 @@ These cost real time to find. Cluster-specific ones are in
 - **The regularization reference scale is `mean(x0^2)`, not `mean(x0)^2`.**
   Deliberate deviation from the paper, 2026-09-16. The published form is
   degenerate for near-zero-mean spectral fields and made the penalty jump to
-  1e5 on iteration 1. `scripts/stjohns_optimize.py` keeps the old scale on
+  1e5 on iteration 1. `archive/scripts/stjohns_optimize.py` keeps the old scale on
   purpose as a faithful port; do not "fix" it. (`heatwave_ic/optimize.py`
   docstring has the full story.)
 - **In detection, filter each day for extent before the space-time

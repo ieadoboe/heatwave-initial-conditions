@@ -19,7 +19,7 @@ in tim_code/ is intentionally left untouched (the line-208 bug still lives there
      the loss still averages a 4×4 grid box around the nearest model cell.
   4. IC BUILDER — `--build-ic` slices the model's input + forcing variables from
      ARCO-ERA5 at init_date and writes the IC zarr the run regrids (mirrors the
-     pipeline in scripts/heatwave_leadtime_sweep.py).
+     pipeline in archive/scripts/heatwave_leadtime_sweep.py).
 
 Loss (unchanged form — Eq 3 of the paper, with the code's sqrt):
     L = (beta * T_ref) / sqrt(mean(T_box, last window))
