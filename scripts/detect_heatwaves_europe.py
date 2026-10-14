@@ -3,6 +3,7 @@
     python scripts/detect_heatwaves_europe.py
     python scripts/detect_heatwaves_europe.py --year 2025 --min-area 100000
     python scripts/detect_heatwaves_europe.py --percentile 0.95 --tag _p95
+    python scripts/detect_heatwaves_europe.py --year 2003 --leave-one-out --window 31
 
 Needs the downloads from scripts/download_era5_europe_daily.py. Applies
 Perkins & Alexander CTX90pct against a 1991-2020 calendar-day baseline, labels
@@ -27,6 +28,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
 import xarray as xr  # noqa: E402
 
 
@@ -73,6 +75,70 @@ PLOTS = ROOT / "plots" / "detection"
 ERA5_DIR = DATA / "era5_europe"
 
 
+def baseline_years_for(year: int, first: int, last: int,
+                       leave_one_out: bool) -> list[int]:
+    """Baseline years for one target year; without it under leave-one-out."""
+    years = list(range(first, last + 1))
+    if leave_one_out and year in years:
+        years.remove(year)
+    return years
+
+
+def threshold_name(first: int, last: int, pct: float, span: str,
+                   window: int, baseline_years: list[int]) -> str:
+    """Cache filename for a threshold, keyed by everything that shapes it.
+
+    The default (15-day window, full baseline) keeps its original name so
+    existing caches and notebooks still find it."""
+    name = f"heatwave_threshold_europe_{first}_{last}_p{round(pct * 100, 1):g}"
+    if window != 15:
+        name += f"_w{window}"
+    dropped = sorted(set(range(first, last + 1)) - set(baseline_years))
+    if dropped:
+        name += "_loo" + "_".join(str(y) for y in dropped)
+    return f"{name}_{span}.nc"
+
+
+def default_tag(window: int, first: int, last: int,
+                baseline_years: list[int]) -> str:
+    """Output suffix for a run with no --tag, so a non-default window or a
+    leave-one-out baseline never overwrites the reference catalogue."""
+    tag = f"_w{window}" if window != 15 else ""
+    if len(baseline_years) < last - first + 1:
+        tag += "_loo"
+    return tag
+
+
+def replace_atomically(write, path: Path) -> None:
+    """Write through a temporary file, so a run killed mid-write never leaves
+    a truncated file that a later run would reuse."""
+    tmp = path.with_name(path.stem + ".tmp" + path.suffix)
+    write(tmp)
+    os.replace(tmp, path)
+
+
+def labels_path_for(csv_path: Path) -> Path:
+    """Where --save-labels puts the footprints that go with an event CSV."""
+    name = csv_path.stem.replace("heatwave_events_", "heatwave_labels_")
+    return csv_path.parent / "labels" / f"{name}.npz"
+
+
+def save_labels(det, events, path: Path) -> None:
+    """Every cell-day of every catalogued event, as sparse coordinates.
+
+    The full (time, lat, lon) label grid is mostly zeros; storing only the
+    event cell-days keeps a season to a few hundred kB."""
+    keep = np.isin(det.labels, events.event_id.to_numpy())
+    t, i, j = np.nonzero(keep)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    replace_atomically(
+        lambda p: np.savez_compressed(
+            p, t=t.astype(np.int16), i=i.astype(np.int16),
+            j=j.astype(np.int16), event_id=det.labels[t, i, j].astype(np.int32),
+            shape=np.array(det.labels.shape)),
+        path)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--year", type=int, default=2026,
@@ -98,14 +164,37 @@ def main():
     parser.add_argument("--rebuild-threshold", action="store_true",
                         help="Recompute the percentile climatology even if the "
                              "cached one exists")
+    parser.add_argument("--window", type=int, default=15,
+                        help="Calendar days pooled per threshold, centred on "
+                             "the target day, so it must be odd (default 15, "
+                             "the CTX90pct choice; 7 and 31 are common too)")
+    parser.add_argument("--leave-one-out", action="store_true",
+                        help="Drop the target year from the baseline when it "
+                             "falls inside it, so a year never helps set the "
+                             "bar it is judged against")
+    parser.add_argument("--save-labels", action="store_true",
+                        help="Also save which cells on which days belong to "
+                             "each event, to <out-dir>/labels/, so runs can "
+                             "be compared by shared cells")
+    parser.add_argument("--no-plot", action="store_true",
+                        help="Skip the map; for sweeps that run hundreds of "
+                             "settings")
+    parser.add_argument("--out-dir", default=None,
+                        help="Where the event CSV goes (default data/)")
     parser.add_argument("--tag", default="",
                         help="Suffix for the output CSV and map, so runs with "
                              "different settings do not overwrite each other "
                              "(scripts/catalogue_sensitivity.py sets it)")
     args = parser.parse_args()
 
+    if args.window < 1 or args.window % 2 == 0:
+        sys.exit(f"--window must be odd and positive, got {args.window}: a "
+                 f"window centred on the target day has as many days on each "
+                 f"side")
     data_dir = Path(args.data_dir)
     first, last = args.baseline
+    baseline_years = baseline_years_for(args.year, first, last,
+                                        args.leave_one_out)
     target_path = data_dir / f"europe_tmax_{args.year}.nc"
     if not target_path.exists():
         sys.exit(f"missing {target_path}\n"
@@ -123,27 +212,32 @@ def main():
     # so a May-September cache must never be reused for April-October data.
     months = target["time"].dt.month
     span = f"m{int(months.min()):02d}-{int(months.max()):02d}"
-    thresh_path = DATA / (f"heatwave_threshold_europe_{first}_{last}_"
-                          f"p{int(args.percentile * 100)}_{span}.nc")
+    thresh_path = DATA / threshold_name(first, last, args.percentile, span,
+                                        args.window, baseline_years)
     if thresh_path.exists() and not args.rebuild_threshold:
         print(f"\nThreshold: reusing {thresh_path.name}")
         threshold = xr.open_dataarray(thresh_path).load()
     else:
         baseline_paths = [data_dir / f"europe_tmax_{y}.nc"
-                          for y in range(first, last + 1)]
+                          for y in baseline_years]
         missing = [p.name for p in baseline_paths if not p.exists()]
         if missing:
             sys.exit(f"missing {len(missing)} baseline year(s): "
                      f"{', '.join(missing[:5])}{' ...' if len(missing) > 5 else ''}\n"
                      f"run: python scripts/download_era5_europe_daily.py")
-        print(f"\nBaseline {first}-{last}: reading {len(baseline_paths)} files ...")
+        dropped = sorted(set(range(first, last + 1)) - set(baseline_years))
+        print(f"\nBaseline {first}-{last}"
+              f"{f' without {dropped[0]}' if dropped else ''}: "
+              f"reading {len(baseline_paths)} files ...")
         baseline = D.open_daily_tmax(baseline_paths)
         print(f"  {baseline.sizes['time']} days "
               f"({baseline.nbytes / 1e6:.0f} MB in memory)")
+        half = args.window // 2
         print(f"  computing the calendar-day {args.percentile:.0%} percentile "
-              f"on a +/-7 day window ...")
-        threshold = D.calendar_day_percentile(baseline, q=args.percentile)
-        threshold.to_netcdf(thresh_path)
+              f"on a +/-{half} day window ...")
+        threshold = D.calendar_day_percentile(baseline, q=args.percentile,
+                                              window=half)
+        replace_atomically(threshold.to_netcdf, thresh_path)
         print(f"  cached -> {thresh_path}")
         del baseline
 
@@ -158,9 +252,23 @@ def main():
 
     events = D.event_table(det, target, min_area_km2=args.min_area)
     events = D.in_season(events, *args.season)
+
+    tag = args.tag or default_tag(args.window, first, last, baseline_years)
+    out_dir = Path(args.out_dir) if args.out_dir else DATA
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_csv = out_dir / f"heatwave_events_europe_{args.year}{tag}.csv"
     if events.empty:
-        sys.exit(f"\nNo events above {args.min_area:,.0f} km2. "
-                 f"Lower --min-area to see smaller ones.")
+        # An empty catalogue is a result, not an error: a strict setting in a
+        # cool summer can find nothing, and a sweep has to record that.
+        replace_atomically(
+            lambda p: pd.DataFrame(columns=["rank", "start", "peak", "end"])
+            .to_csv(p, index=False), out_csv)
+        if args.save_labels:
+            save_labels(det, events.assign(event_id=pd.Series(dtype=int)),
+                        labels_path_for(out_csv))
+        print(f"\nNo events above {args.min_area:,.0f} km2 -> {out_csv} "
+              f"(empty). Lower --min-area to see smaller ones.")
+        return
 
     # Tag each event with the modal Koppen class over its land footprint. The
     # centroid alone is wrong for an event wrapped around a coast: one
@@ -171,22 +279,24 @@ def main():
     events["zone"] = [zones.GROUP_NAMES.get(zones.koppen_group(k), "")
                       for k in events.koppen]
 
-    DATA.mkdir(parents=True, exist_ok=True)
-    out_csv = DATA / f"heatwave_events_europe_{args.year}{args.tag}.csv"
-    events.to_csv(out_csv, index=False)
+    replace_atomically(lambda p: events.to_csv(p, index=False), out_csv)
+    if args.save_labels:
+        save_labels(det, events, labels_path_for(out_csv))
     print(f"\n{len(events)} events above {args.min_area:,.0f} km2 "
           f"-> {out_csv}\n")
     cols = ["rank", "start", "peak", "end", "duration_days", "peak_area_km2",
             "centroid_lat", "centroid_lon", "peak_tmax_C", "max_anom_C",
             "koppen", "severity_C_km2_day", "censored_start", "censored_end"]
     print(events[cols].head(15).to_string(index=False))
+    if args.no_plot:
+        return
 
     hw_days = (det.labels > 0).sum(axis=0)
     plots = _submodule("plots")
     fig, _ = plots.plot_europe_heatwaves(
         hw_days, det.lat, det.lon, events=events, year=args.year,
-        save=PLOTS / f"heatwave_europe_{args.year}{args.tag}.pdf")
-    fig.savefig(PLOTS / f"heatwave_europe_{args.year}{args.tag}.png", dpi=150,
+        save=PLOTS / f"heatwave_europe_{args.year}{tag}.pdf")
+    fig.savefig(PLOTS / f"heatwave_europe_{args.year}{tag}.png", dpi=150,
                 bbox_inches="tight")
 
 
